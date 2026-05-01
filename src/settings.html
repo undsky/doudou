@@ -1,0 +1,422 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>设置 - 豆豆助手</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+      <h2>设置</h2>
+      <ul class="nav-menu">
+        <li class="nav-item active" data-tab="openai">AI 配置</li>
+        <li class="nav-item" data-tab="cors">CORS Unblock</li>
+
+        <li class="nav-item" data-tab="other">Cookie 设置</li>
+        <li class="nav-item" data-tab="crawlers">爬虫规则</li>
+        <li class="nav-item" data-tab="about">关于</li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- AI 配置面板 -->
+      <div id="openai-panel" class="panel active">
+        <div
+          class="panel-title"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          AI 配置
+        </div>
+
+        <div class="relay-layout">
+          <!-- 左侧：配置列表 -->
+          <div class="relay-sidebar">
+            <div class="relay-sidebar-header">
+              <h3 class="relay-sidebar-title">配置列表</h3>
+              <div class="relay-sidebar-actions">
+                <button class="btn relay-sidebar-btn" id="importOpenaiBtn">
+                  导入
+                </button>
+                <button class="btn relay-sidebar-btn" id="exportOpenaiBtn">
+                  导出
+                </button>
+                <button
+                  class="btn btn-primary relay-sidebar-btn"
+                  id="addOpenaiBtn"
+                >
+                  + 新增
+                </button>
+              </div>
+            </div>
+            <input
+              type="file"
+              id="importOpenaiFile"
+              accept=".json"
+              style="display: none"
+            />
+            <div id="openai-list" class="relay-list">
+              <!-- 动态内容 -->
+            </div>
+          </div>
+
+          <!-- 右侧：配置详情 -->
+          <div
+            class="relay-content"
+            id="openai-detail-container"
+            style="display: none"
+          >
+            <div class="form-section">
+              <div class="openai-item-header">
+                <span
+                  class="openai-default-badge"
+                  id="openai-detail-badge"
+                  style="display: none"
+                  >默认</span
+                >
+                <div class="form-group">
+                  <input
+                    type="text"
+                    id="openaiName"
+                    class="openai-name-input"
+                    placeholder="配置名称"
+                  />
+                </div>
+                <div class="openai-item-actions">
+                  <button
+                    class="btn btn-warning"
+                    id="openaiTestBtn"
+                    style="font-size: 12px; padding: 4px 10px"
+                  >
+                    测试
+                  </button>
+                </div>
+              </div>
+              <div class="form-row" style="align-items: center">
+                <div class="form-group" style="flex: 1">
+                  <label>API Base URL</label>
+                  <input type="url" id="openaiBaseUrl" />
+                </div>
+                <div class="form-group">
+                  <label>模型名称</label>
+                  <input type="text" id="openaiModel" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>API Key</label>
+                  <input type="text" id="openaiApiKey" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="openai-empty-state" class="relay-empty">
+            <p>请在左侧选择或添加一个 AI 配置</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CORS 配置面板 -->
+      <div id="cors-panel" class="panel cors-panel">
+        <header class="cors-header">
+          <h1>CORS Unblock</h1>
+          <p>解除浏览器跨域限制</p>
+        </header>
+        <div class="settings-grid cors-settings-grid">
+          <section class="settings-section form-section">
+            <h2>响应头</h2>
+
+            <div class="row">
+              <span class="mono">Access-Control-Allow-Origin</span>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-allow-origin" checked />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <span class="mono">Access-Control-Allow-Methods</span>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-allow-methods" checked />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <span class="mono">Access-Control-Allow-Headers</span>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-allow-headers" checked />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <span class="mono">Access-Control-Expose-Headers</span>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-expose-headers" checked />
+                <span class="track"></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section form-section">
+            <h2>高级</h2>
+
+            <div class="row">
+              <div>
+                <div class="label">移除 CSP 头</div>
+                <div class="hint">Content-Security-Policy 等</div>
+              </div>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-remove-csp" />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <div>
+                <div class="label">移除 X-Frame-Options</div>
+                <div class="hint">允许跨域 iframe 嵌入</div>
+              </div>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-remove-xframe" />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <div>
+                <div class="label">SharedArrayBuffer</div>
+                <div class="hint">添加 COOP / COEP 头</div>
+              </div>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-shared-array-buffer" />
+                <span class="track"></span>
+              </label>
+            </div>
+
+            <div class="row">
+              <div>
+                <div class="label">移除 Referer / Origin</div>
+                <div class="hint">对敏感服务器可能有效</div>
+              </div>
+              <label class="switch sm">
+                <input type="checkbox" id="cors-remove-referer-origin" />
+                <span class="track"></span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <footer class="cors-footer">
+          <p>⚠️ 仅用于开发调试，当前模式主要保证无凭据跨域请求</p>
+        </footer>
+      </div>
+
+      <!-- 爬虫面板 -->
+      <div id="crawlers-panel" class="panel">
+        <div
+          class="panel-title"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          爬虫规则列表
+          <div style="display: flex; gap: 8px">
+            <button
+              class="btn"
+              id="importCrawlerBtn"
+              style="font-size: 13px; padding: 6px 16px"
+            >
+              导入规则
+            </button>
+            <button
+              class="btn"
+              id="exportCrawlerBtn"
+              style="font-size: 13px; padding: 6px 16px"
+            >
+              导出规则
+            </button>
+            <button
+              class="btn btn-primary"
+              id="addCrawlerBtn"
+              style="font-size: 13px; padding: 6px 16px"
+            >
+              + 添加规则
+            </button>
+          </div>
+          <input
+            type="file"
+            id="importCrawlerFile"
+            accept=".json"
+            style="display: none"
+          />
+        </div>
+
+        <div id="crawler-list" class="crawler-list">
+          <!-- 动态内容 -->
+        </div>
+      </div>
+
+      <!-- Cookie 设置面板 -->
+      <div id="other-panel" class="panel">
+        <div class="panel-title">Cookie 设置</div>
+        <div class="form-section">
+          <div class="form-group">
+            <label>导出格式</label>
+            <select id="cookieExportFormat">
+              <option value="netscape">Netscape</option>
+              <option value="header">Header String</option>
+              <option value="object">JSON</option>
+              <!-- <option value="detailed">详细对象数组</option> -->
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 关于面板 -->
+      <div id="about-panel" class="panel">
+        <div class="panel-title">关于豆豆</div>
+        <div
+          class="about-content"
+          style="text-align: center; padding: 40px 20px"
+        >
+          <img
+            src="../icons/doudou_128.png"
+            alt="Logo"
+            style="width: 80px; height: 80px; margin-bottom: 20px"
+          />
+          <h2 style="margin: 0 0 10px; font-size: 24px; color: #333">
+            豆豆 - AI自媒体工具
+          </h2>
+          <p
+            id="app-version"
+            style="margin: 0 0 30px; color: #666; font-size: 14px"
+          >
+            版本 v1.0.0
+          </p>
+
+          <div
+            class="about-links"
+            style="display: flex; gap: 20px; justify-content: center"
+          >
+            <a
+              href="https://www.undsky.com/doudou"
+              target="_blank"
+              class="btn btn-primary"
+              >官网</a
+            >
+            <a
+              href="https://github.com/undsky/doudou"
+              target="_blank"
+              class="btn btn-primary"
+              >源码</a
+            >
+          </div>
+
+          <div
+            style="
+              margin-top: 30px;
+              display: flex;
+              gap: 40px;
+              justify-content: center;
+              align-items: flex-start;
+            "
+          >
+            <div>
+              <p style="color: #666; font-size: 14px; margin-bottom: 10px">
+                微信公众号
+              </p>
+              <img
+                src="../assets/gh.jpg"
+                alt="微信公众号"
+                style="
+                  width: 200px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                "
+              />
+            </div>
+            <div>
+              <p style="color: #666; font-size: 14px; margin-bottom: 10px">
+                微信交流群
+              </p>
+              <img
+                id="wechat-group-img"
+                src=""
+                alt="微信交流群"
+                style="
+                  width: 200px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                "
+              />
+              <div
+                style="
+                  margin-top: 15px;
+                  text-align: left;
+                  width: fit-content;
+                  margin-left: auto;
+                  margin-right: auto;
+                  color: #666;
+                  font-size: 13px;
+                  line-height: 1.6;
+                "
+              ></div>
+            </div>
+            <div>
+              <p style="color: #666; font-size: 14px; margin-bottom: 10px">
+                QQ 交流群
+              </p>
+              <img
+                src="../assets/qqqun.jpg"
+                alt="QQ 交流群"
+                style="
+                  width: 200px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                "
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-content">
+          <h3 id="confirm-title" style="margin-bottom: 12px; font-size: 16px">
+            确认
+          </h3>
+          <p
+            id="confirm-message"
+            style="margin-bottom: 24px; color: #666; font-size: 14px"
+          >
+            您确定要执行此操作吗？
+          </p>
+          <div
+            class="modal-actions"
+            style="display: flex; justify-content: flex-end; gap: 12px"
+          >
+            <button id="btn-cancel" class="btn-cancel">取消</button>
+            <button id="btn-confirm" class="btn-danger">确认</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="settings.js"></script>
+  </body>
+</html>

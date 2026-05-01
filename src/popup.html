@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="main-header">
+        <h2>
+          豆豆 - AI自媒体工具 <span class="subtitle">人人都能做自媒体</span>
+        </h2>
+        <div class="header-actions">
+          <div
+            class="toggle-btn"
+            id="doudou-toggle"
+            title="控制页面中豆豆按钮的显示隐藏"
+          >
+            <span class="toggle-label">浮窗</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="doudou-toggle-input" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-btn" id="sidebar-toggle" title="打开或关闭侧边栏">
+            <span class="toggle-label">侧边栏</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="sidebar-toggle-input" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-btn" id="settings" title="设置">
+            <span class="icon">⚙️</span>
+            <span class="label">设置</span>
+          </div>
+          <a
+            class="upgrade-btn hidden"
+            id="upgrade-btn"
+            href="https://gitee.com/undsky/doudou-chrome-extention/releases"
+            target="_blank"
+            title="发现新版本"
+          >
+            <span class="icon">🚀</span>
+            <span class="label">升级</span>
+          </a>
+        </div>
+      </div>
+      <div class="content" id="main-view">
+        <div class="category-items">
+          <div class="menu-item" id="create-article">
+            <span class="icon">📝</span>
+            <div class="text">
+              <span class="label">文章创作</span>
+              <span class="desc">MD编辑器，多平台同步</span>
+            </div>
+          </div>
+          <div class="menu-item" id="clone-article">
+            <span class="icon">📋</span>
+            <div class="text">
+              <span class="label">AI文章复刻</span>
+              <span class="desc">选择文章内容，AI复刻</span>
+            </div>
+          </div>
+          <div class="menu-item" id="create-image-text">
+            <span class="icon">✍️</span>
+            <div class="text">
+              <span class="label">AI采集创作</span>
+              <span class="desc">爬取对标自动生成文章</span>
+            </div>
+          </div>
+          <div class="menu-item" id="infinite-canvas">
+            <span class="icon">♾️</span>
+            <div class="text">
+              <span class="label">AI 画布</span>
+              <span class="desc">自由创作，无限可能</span>
+            </div>
+          </div>
+          <div class="menu-item-wrapper" style="position: relative">
+            <div class="menu-item" id="page-screenshot">
+              <span class="icon">📸</span>
+              <div class="text">
+                <span class="label">页面截图</span>
+                <span class="desc">整页截图或区域选择截图</span>
+              </div>
+            </div>
+            <div class="screenshot-submenu" id="screenshot-submenu">
+              <div class="screenshot-submenu-item" id="screenshot-full">
+                <span class="icon">📄</span>
+                <span>整页截图</span>
+              </div>
+              <div class="screenshot-submenu-item" id="screenshot-select">
+                <span class="icon">✂️</span>
+                <span>选择截图</span>
+              </div>
+            </div>
+          </div>
+          <div class="menu-item" id="cors-unblock">
+            <span class="icon">🔓</span>
+            <div class="text">
+              <span class="label">CORS Unblock</span>
+              <span class="desc">解除跨域限制</span>
+            </div>
+            <span class="cors-status" id="cors-status"></span>
+          </div>
+          <div class="menu-item" id="generate-qrcode">
+            <span class="icon">🔳</span>
+            <div class="text">
+              <span class="label">生成二维码</span>
+              <span class="desc">生成当前页面的二维码</span>
+            </div>
+          </div>
+          <div class="menu-item" id="json-editor">
+            <span class="icon">{}</span>
+            <div class="text">
+              <span class="label">JSON编辑器</span>
+              <span class="desc">可视化编辑JSON数据</span>
+            </div>
+          </div>
+          <div class="menu-item" id="export-cookies">
+            <span class="icon">🍪</span>
+            <div class="text">
+              <span class="label">导出 Cookies</span>
+              <span class="desc">下载当前页面 Cookies</span>
+            </div>
+          </div>
+          <div class="menu-item" id="network-capture">
+            <span class="icon">🕷</span>
+            <div class="text">
+              <span class="label">网络抓包</span>
+              <span class="desc">抓取全部浏览器请求</span>
+            </div>
+            <span class="capture-status" id="capture-status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自定义确认框 -->
+    <div class="confirm-modal" id="confirm-modal">
+      <div class="confirm-box">
+        <div class="confirm-title" id="confirm-title">提示</div>
+        <div class="confirm-message" id="confirm-message"></div>
+        <div class="confirm-buttons">
+          <button class="confirm-btn confirm-btn-cancel" id="confirm-cancel">
+            取消
+          </button>
+          <button class="confirm-btn confirm-btn-ok" id="confirm-ok">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

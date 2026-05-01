@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI图文创作 - 豆豆</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="layout">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+          <section>
+            <h2>采集时间范围</h2>
+            <select id="date-range" class="input input-full">
+              <option value="1" selected>近 1 天</option>
+              <option value="2">近 2 天</option>
+              <option value="3">近 3 天</option>
+              <option value="5">近 5 天</option>
+              <option value="7">近 7 天</option>
+            </select>
+          </section>
+          <section>
+            <div class="section-header">
+              <h2>分组</h2>
+              <button class="btn btn-sm" id="add-group">+ 添加分组</button>
+            </div>
+            <div id="group-list">
+              <!-- 动态渲染分组名称列表 -->
+            </div>
+            <div class="empty-state hidden" id="empty-groups">
+              <p>暂无分组，点击「添加分组」开始配置</p>
+            </div>
+          </section>
+        </aside>
+
+        <!-- 右侧内容区 -->
+        <main class="main-content">
+          <div id="group-detail">
+            <!-- 选中分组的详细内容 -->
+          </div>
+          <div class="empty-state" id="empty-detail">
+            <p>请选择左侧分组查看详情</p>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

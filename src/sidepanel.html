@@ -1,0 +1,245 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <div id="doudou-sidebar">
+      <div class="sidebar-chat" id="doudou-chat-area">
+        <div class="chat-welcome">
+          <img id="welcome-icon" />
+          <div>你好，我是豆豆 AI 助手<br />有什么可以帮你的？</div>
+        </div>
+      </div>
+      <div class="sidebar-input-area" style="position: relative">
+        <div class="skill-picker" id="doudou-skill-picker">
+          <div class="skill-picker-search">
+            <input
+              type="text"
+              id="doudou-skill-search"
+              placeholder="搜索技能"
+            />
+          </div>
+          <div class="skill-picker-list" id="doudou-skill-list"></div>
+        </div>
+        <div class="translate-bar" id="doudou-translate-bar">
+          <select id="doudou-translate-from">
+            <option value="auto" selected>自动检测</option>
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="zh-TW">中文（繁體）</option>
+            <option value="es">Español</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ar">العربية</option>
+            <option value="pt">Português</option>
+            <option value="bn">বাংলা</option>
+            <option value="ru">Русский</option>
+            <option value="ja">日本語</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ko">한국어</option>
+            <option value="id">Bahasa Indonesia</option>
+            <option value="it">Italiano</option>
+            <option value="tr">Türkçe</option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="th">ไทย</option>
+            <option value="pl">Polski</option>
+            <option value="nl">Nederlands</option>
+            <option value="uk">Українська</option>
+            <option value="ms">Bahasa Melayu</option>
+            <option value="fil">Filipino</option>
+            <option value="sv">Svenska</option>
+            <option value="cs">Čeština</option>
+            <option value="ro">Română</option>
+            <option value="el">Ελληνικά</option>
+            <option value="hu">Magyar</option>
+            <option value="he">עברית</option>
+            <option value="da">Dansk</option>
+            <option value="fi">Suomi</option>
+            <option value="no">Norsk</option>
+            <option value="sk">Slovenčina</option>
+            <option value="hr">Hrvatski</option>
+            <option value="bg">Български</option>
+            <option value="lt">Lietuvių</option>
+            <option value="sl">Slovenščina</option>
+            <option value="lv">Latviešu</option>
+            <option value="et">Eesti</option>
+          </select>
+          <span class="translate-bar-arrow">→</span>
+          <select id="doudou-translate-to">
+            <option value="zh" selected>中文（简体）</option>
+            <option value="en">English</option>
+            <option value="zh-TW">中文（繁體）</option>
+            <option value="es">Español</option>
+            <option value="hi">हिन्दी</option>
+            <option value="ar">العربية</option>
+            <option value="pt">Português</option>
+            <option value="bn">বাংলা</option>
+            <option value="ru">Русский</option>
+            <option value="ja">日本語</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ko">한국어</option>
+            <option value="id">Bahasa Indonesia</option>
+            <option value="it">Italiano</option>
+            <option value="tr">Türkçe</option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="th">ไทย</option>
+            <option value="pl">Polski</option>
+            <option value="nl">Nederlands</option>
+            <option value="uk">Українська</option>
+            <option value="ms">Bahasa Melayu</option>
+            <option value="fil">Filipino</option>
+            <option value="sv">Svenska</option>
+            <option value="cs">Čeština</option>
+            <option value="ro">Română</option>
+            <option value="el">Ελληνικά</option>
+            <option value="hu">Magyar</option>
+            <option value="he">עברית</option>
+            <option value="da">Dansk</option>
+            <option value="fi">Suomi</option>
+            <option value="no">Norsk</option>
+            <option value="sk">Slovenčina</option>
+            <option value="hr">Hrvatski</option>
+            <option value="bg">Български</option>
+            <option value="lt">Lietuvių</option>
+            <option value="sl">Slovenščina</option>
+            <option value="lv">Latviešu</option>
+            <option value="et">Eesti</option>
+          </select>
+          <button
+            class="translate-bar-close"
+            id="doudou-translate-close"
+            title="退出翻译"
+          >
+            ✕
+          </button>
+        </div>
+        <div
+          class="sidebar-attachment-preview"
+          id="doudou-attachment-preview"
+        ></div>
+        <div class="skill-shortcuts" id="doudou-skill-shortcuts"></div>
+        <div class="sidebar-input-wrapper" id="doudou-input-wrapper">
+          <textarea
+            class="sidebar-textarea"
+            id="doudou-input"
+            placeholder="输入 / 选择技能、发消息快捷键 Enter、发消息语音指令：豆豆发送"
+            rows="3"
+          ></textarea>
+          <div class="sidebar-input-toolbar">
+            <div class="sidebar-toolbar-actions">
+              <button
+                class="sidebar-toolbar-btn"
+                id="doudou-attach-btn"
+                title="上传附件"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+                  />
+                </svg>
+              </button>
+              <button
+                class="sidebar-toolbar-btn"
+                id="doudou-screenshot-btn"
+                title="截图上传"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="6" cy="6" r="3" />
+                  <circle cx="6" cy="18" r="3" />
+                  <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                  <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                  <line x1="8.12" y1="8.12" x2="12" y2="12" />
+                </svg>
+              </button>
+              <button
+                class="sidebar-toolbar-btn"
+                id="doudou-voice-btn"
+                title="语音输入"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </button>
+              <button
+                class="sidebar-toolbar-btn"
+                id="doudou-tts-btn"
+                title="开启自动朗读"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 010 7.07" />
+                  <path d="M19.07 4.93a10 10 0 010 14.14" />
+                </svg>
+              </button>
+            </div>
+            <div class="sidebar-send-group">
+              <label class="enter-send-toggle" title="Enter 发送">
+                <input type="checkbox" id="doudou-enter-send" checked />
+                <span class="enter-send-slider"></span>
+                <span class="enter-send-label">⏎</span>
+              </label>
+              <button
+                class="sidebar-send-btn"
+                id="doudou-send"
+                title="发送 (Enter)"
+              >
+                ↑
+              </button>
+            </div>
+          </div>
+        </div>
+        <input
+          type="file"
+          id="doudou-file-input"
+          accept=".pdf,.txt,.csv,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.md,.mobi,.epub,.png,.jpeg,.jpg,.webp,.mp4,.webm,.mov"
+          multiple
+          style="display: none"
+        />
+      </div>
+    </div>
+    <script src="../md/static/js/marked.min.js"></script>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

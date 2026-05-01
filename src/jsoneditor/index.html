@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSON编辑器 - 豆豆</title>
+    <link
+      href="../../lib/jsoneditor.min.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #fafafa;
+      }
+
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: #fff;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #eee;
+        z-index: 100;
+      }
+
+      .header h1 {
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .mode-tabs {
+        display: flex;
+        gap: 4px;
+        background: #f0f0f0;
+        padding: 4px;
+        border-radius: 8px;
+      }
+
+      .mode-tab {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        background: transparent;
+        color: #666;
+        transition: all 0.15s ease;
+      }
+
+      .mode-tab:hover {
+        background: #e0e0e0;
+      }
+
+      .mode-tab.active {
+        background: #fff;
+        color: #333;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        background: #fff;
+        color: #555;
+      }
+
+      .btn:hover {
+        background: #f5f5f5;
+      }
+
+      .btn-primary {
+        background: #333;
+        color: #fff;
+        border-color: #333;
+      }
+
+      .btn-primary:hover {
+        background: #222;
+      }
+
+      .main-container {
+        position: fixed;
+        top: 76px;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+      }
+
+      #jsoneditor {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      /* 隐藏 jsoneditor 自带的模式切换 */
+      .jsoneditor-modes {
+        display: none !important;
+      }
+
+      .jsoneditor {
+        border: none !important;
+      }
+
+      .jsoneditor-menu {
+        background: #3c3c3c !important;
+        border-bottom: none !important;
+      }
+
+      .jsoneditor-menu > button:hover {
+        filter: brightness(1.5) !important;
+      }
+
+      /* 下拉菜单样式 */
+      .jsoneditor-contextmenu ul {
+        background: #fff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      }
+
+      .jsoneditor-contextmenu ul li button {
+        background: #fff !important;
+        color: #333 !important;
+      }
+
+      .jsoneditor-contextmenu ul li button:hover {
+        background: #f5f5f5 !important;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #333;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 13px;
+        opacity: 0;
+        transition: all 0.2s ease;
+        z-index: 1000;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      .toast.success {
+        background: #2e7d32;
+      }
+      .toast.error {
+        background: #c62828;
+      }
+
+      #file-input {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>JSON 编辑器</h1>
+      <div class="header-right">
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="tree">树</button>
+          <button class="mode-tab" data-mode="code">代码</button>
+          <button class="mode-tab" data-mode="form">表单</button>
+          <button class="mode-tab" data-mode="text">文本</button>
+          <button class="mode-tab" data-mode="view">视图</button>
+          <button class="mode-tab" data-mode="preview">预览</button>
+        </div>
+        <div class="toolbar">
+          <button class="btn" id="btn-new">新建</button>
+          <button class="btn" id="btn-open">打开</button>
+          <button class="btn" id="btn-copy">复制</button>
+          <button class="btn btn-primary" id="btn-download">下载</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div id="jsoneditor"></div>
+    </div>
+
+    <input type="file" id="file-input" accept=".json,application/json" />
+    <div class="toast" id="toast"></div>
+
+    <script src="../../lib/jsoneditor.min.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

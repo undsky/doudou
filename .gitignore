@@ -1,0 +1,17 @@
+# misc
+.DS_Store
+*.zip
+.vscode
+.idea
+.cursor
+.fleet
+.zed
+.windsurf
+.kiro
+node_modules
+dist
+package-lock.json
+
+# vitepress
+docs/.vitepress/cache
+docs/.vitepress/dist
