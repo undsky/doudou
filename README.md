@@ -2,7 +2,9 @@
 
 > Chrome 扩展，人人都能做自媒体
 
-[访问官网](https://www.undsky.com/doudou)
+- [访问官网](https://www.undsky.com/doudou)
+
+- [AI 画布](https://undsky.com/doudou_canvas)
 
 ## 安装
 
