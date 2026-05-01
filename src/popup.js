@@ -107,13 +107,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  async function ensureCorsEnabled() {
+    const statusRes = await chrome.runtime.sendMessage({
+      type: "GET_CORS_STATUS",
+    });
+    const currentConfig = {
+      ...DEFAULT_CORS_CONFIG,
+      ...(statusRes?.config || {}),
+    };
+
+    if (currentConfig.enabled) return;
+
+    const nextConfig = {
+      ...currentConfig,
+      enabled: true,
+    };
+
+    await chrome.storage.local.set({ corsConfig: nextConfig });
+
+    const updateRes = await chrome.runtime.sendMessage({
+      type: "CORS_UPDATE_CONFIG",
+      config: nextConfig,
+    });
+
+    if (!updateRes?.success) {
+      throw new Error(updateRes?.error || "开启 CORS 状态失败");
+    }
+
+    renderCorsStatus(true);
+  }
+
   // AI 画布
   const infiniteCanvasBtn = document.getElementById("infinite-canvas");
   if (infiniteCanvasBtn) {
-    infiniteCanvasBtn.addEventListener("click", () => {
-      chrome.tabs.create({
-        url: "https://doudou.undsky.com/",
-      });
+    infiniteCanvasBtn.addEventListener("click", async () => {
+      try {
+        await ensureCorsEnabled();
+        chrome.tabs.create({
+          url: "https://www.undsky.com/doudou_canvas",
+        });
+      } catch (error) {
+        showToast("开启 CORS 失败: " + error.message, "error");
+      }
     });
   }
 
