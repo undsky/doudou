@@ -771,16 +771,30 @@ body {
   text-overflow: ellipsis;
 }
 
+.relay-item-copy,
 .relay-item-delete {
-  color: #ff4d4f;
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 4px;
   display: none;
+  margin-left: 4px;
 }
 
+.relay-item-copy {
+  color: #52c41a;
+}
+
+.relay-item-delete {
+  color: #ff4d4f;
+}
+
+.relay-item:hover .relay-item-copy,
 .relay-item:hover .relay-item-delete {
   display: block;
+}
+
+.relay-item-copy:hover {
+  background: #f6ffed;
 }
 
 .relay-item-delete:hover {

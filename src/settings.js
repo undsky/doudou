@@ -748,10 +748,19 @@ function renderOpenaiList() {
     el.innerHTML = `
       <span class="openai-drag-handle">≡</span>
       ${badge}<span class="relay-item-name" title="${escapeAttr(config.name)}">${escapeAttr(config.name) || "未命名配置"}</span>
+      <span class="relay-item-copy" data-id="${config.id}" title="复制">复制</span>
       <span class="relay-item-delete" data-id="${config.id}" title="删除">删除</span>
     `;
 
     el.addEventListener("click", () => selectOpenai(config.id));
+
+    const copyBtn = el.querySelector(".relay-item-copy");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        copyOpenaiItem(config.id);
+      });
+    }
 
     const delBtn = el.querySelector(".relay-item-delete");
     if (delBtn) {
@@ -944,6 +953,24 @@ function addOpenaiItem() {
   saveOpenaiConfigs();
   renderOpenaiList();
   selectOpenai(newId);
+}
+
+function copyOpenaiItem(id) {
+  const index = openaiConfigs.findIndex((c) => c.id === id);
+  if (index === -1) return;
+
+  const config = openaiConfigs[index];
+  const newId = generateId();
+  const newConfig = createOpenaiConfig({
+    ...config,
+    id: newId,
+    name: `${config.name || "未命名配置"}-复制`,
+  });
+  openaiConfigs.splice(index + 1, 0, newConfig);
+  saveOpenaiConfigs();
+  renderOpenaiList();
+  selectOpenai(newId);
+  showToast("已复制", "success");
 }
 
 /**
