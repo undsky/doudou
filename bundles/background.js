@@ -2891,19 +2891,14 @@ var require_background = __commonJS({
       }
     }
     globalThis.__coseDetectXiaohongshu = detectXiaohongshuViaOffscreen;
+    const COSE_DYNAMIC_RULE_IDS = [1, 2, 1000, 1001];
     async function initDynamicRules() {
       try {
-        const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-        const existingIds = existingRules.map((r) => r.id);
-        if (existingIds.length > 0) {
-          await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: existingIds
-          });
-        }
         await chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: COSE_DYNAMIC_RULE_IDS,
           addRules: [
             {
-              id: 1,
+              id: 1000,
               priority: 100,
               action: {
                 type: "modifyHeaders",
@@ -2921,7 +2916,7 @@ var require_background = __commonJS({
               }
             },
             {
-              id: 2,
+              id: 1001,
               priority: 100,
               action: {
                 type: "modifyHeaders",
