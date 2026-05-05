@@ -1,5 +1,5 @@
 body {
-  width: 542px;
+  width: 570px;
   box-sizing: border-box;
   /* min-height removed to allow content to dictate height naturally */
   padding: 10px;
@@ -35,7 +35,7 @@ h2 {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* gap: 8px; */
 }
 
 .toggle-btn {
@@ -235,7 +235,7 @@ h2 {
 
 .category-items {
   display: grid;
-  grid-template-columns: repeat(3, 170px);
+  grid-template-columns: repeat(3, 1fr);
   justify-content: start;
   gap: 6px;
 }
