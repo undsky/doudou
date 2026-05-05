@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 检查升级（异步，不阻塞页面）
   const upgradeBtn = document.getElementById("upgrade-btn");
   if (upgradeBtn) {
-    fetch("https://doudou.undsky.com/v.json")
+    fetch("https://www.undsky.com/v.json")
       .then((res) => res.json())
       .then((data) => {
         const currentVersion = chrome.runtime.getManifest().version;
@@ -242,11 +242,11 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               expression: "window.scrollTo(0, document.body.scrollHeight)",
               awaitPromise: true,
-            }
+            },
           );
 
           // Small delay to let page settle after scroll
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 300));
 
           // Scroll back to top before capturing
           await chrome.debugger.sendCommand(
@@ -255,11 +255,11 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               expression: "window.scrollTo(0, 0)",
               awaitPromise: true,
-            }
+            },
           );
 
           // Wait for scroll to complete
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
 
           // Capture screenshot
           const { data } = await chrome.debugger.sendCommand(
