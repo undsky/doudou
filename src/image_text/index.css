@@ -43,7 +43,7 @@ body {
   flex: 1;
   min-width: 0;
   padding: 16px 24px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* Section */
@@ -93,6 +93,23 @@ section h2 {
   width: 100%;
 }
 
+.date-range-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-field span {
+  font-size: 12px;
+  color: #999;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -122,14 +139,14 @@ section h2 {
 }
 
 .btn-primary {
-  background: #1a1a1a;
+  background: #1890ff;
   color: #fff;
-  border-color: #1a1a1a;
+  border-color: #1890ff;
 }
 
 .btn-primary:hover {
-  background: #333;
-  border-color: #333;
+  background: #40a9ff;
+  border-color: #40a9ff;
 }
 
 .btn-primary:disabled {
@@ -202,7 +219,7 @@ section h2 {
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-.group-list-item .group-item-name {
+.group-list-item .group-name-input {
   flex: 1;
   min-width: 0;
   font-size: 13px;
@@ -211,6 +228,11 @@ section h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
 }
 
 .group-list-item .link-count {
@@ -230,46 +252,21 @@ section h2 {
   padding: 2px 4px;
 }
 
-/* 详情区 */
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.group-name-input {
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  background: transparent;
-  outline: none;
-  transition: all 0.15s;
-  min-width: 60px;
-  width: auto;
-  flex: 1;
-  font-family: inherit;
-  border-color: #e8e8e8;
-}
-
-.group-name-input::placeholder {
-  color: #ccc;
-  font-weight: 400;
-}
-
 /* 详情区左右布局 */
 .detail-body {
   display: flex;
   gap: 24px;
+  height: calc(100vh - 32px);
+  min-height: 0;
 }
 
 .detail-left {
   width: 350px;
   min-width: 350px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .detail-left-header {
@@ -309,6 +306,8 @@ section h2 {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .link-item {
@@ -352,11 +351,11 @@ section h2 {
 }
 
 /* AI Prompt */
-.ai-prompt-section {
+/* .ai-prompt-section {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid #f0f0f0;
-}
+} */
 
 .ai-prompt-section h3 {
   font-size: 14px;

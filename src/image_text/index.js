@@ -13,7 +13,7 @@ let isCollecting = false;
 let shouldStop = false;
 
 // 内存中的完整配置
-let currentConfig = { groups: [], dateRange: "1" };
+let currentConfig = { groups: [], dateStart: "", dateEnd: "" };
 // 当前选中的分组索引
 let selectedGroupIndex = -1;
 
@@ -21,7 +21,7 @@ let selectedGroupIndex = -1;
 
 async function loadConfig() {
   const { [STORAGE_KEY]: config } = await chrome.storage.local.get(STORAGE_KEY);
-  return config || { groups: [], dateRange: "1" };
+  return withDefaultDateRange(config || { groups: [] });
 }
 
 async function saveConfig(config) {
@@ -30,6 +30,9 @@ async function saveConfig(config) {
 
 /** 从右侧详情面板读取当前选中分组的数据，同步回 currentConfig */
 function syncDetailToConfig() {
+  currentConfig.dateStart = document.getElementById("date-start").value;
+  currentConfig.dateEnd = document.getElementById("date-end").value;
+
   if (
     selectedGroupIndex < 0 ||
     selectedGroupIndex >= currentConfig.groups.length
@@ -37,9 +40,11 @@ function syncDetailToConfig() {
     return;
 
   const detail = document.getElementById("group-detail");
-  if (!detail.querySelector(".group-name-input")) return;
+  const nameInput = document.querySelector(
+    `.group-list-item[data-index="${selectedGroupIndex}"] .group-name-input`,
+  );
 
-  const name = detail.querySelector(".group-name-input").value.trim();
+  const name = nameInput?.value.trim() || "";
   const links = [];
   detail.querySelectorAll(".link-item .input").forEach((input) => {
     const val = input.value.trim();
@@ -54,8 +59,6 @@ function syncDetailToConfig() {
     links,
     aiPrompt,
   };
-
-  currentConfig.dateRange = document.getElementById("date-range").value;
 }
 
 // ============ UI 渲染 ============
@@ -84,7 +87,7 @@ function renderGroupList() {
 
     const linkCount = group.links.filter(Boolean).length;
     item.innerHTML = `
-      <span class="group-item-name">${escapeHTML(group.name || "未命名分组")}</span>
+      <input type="text" class="group-name-input" value="${escapeHTML(group.name || "未命名分组")}" placeholder="分组名称" />
       <span class="link-count">${linkCount}</span>
       <button class="btn-danger remove-group-btn" title="删除分组">✕</button>
     `;
@@ -92,6 +95,11 @@ function renderGroupList() {
     item.addEventListener("click", (e) => {
       if (e.target.closest(".remove-group-btn")) return;
       selectGroup(index);
+    });
+
+    item.querySelector(".group-name-input").addEventListener("input", (e) => {
+      currentConfig.groups[index].name = e.target.value.trim() || "未命名分组";
+      autoSave();
     });
 
     item
@@ -162,18 +170,14 @@ function renderGroupDetail() {
   }
 
   detail.innerHTML = `
-    <div class="detail-header">
-      <input type="text" class="group-name-input" value="${escapeHTML(group.name)}" placeholder="分组名称" />
-    </div>
-
     <div class="detail-body">
       <div class="detail-left">
         <div class="detail-left-header">
           <h3>链接列表</h3>
           <div class="link-actions">
-            <button class="add-link-btn" id="detail-add-link">+ 添加链接</button>
-            <button class="add-link-btn export-links-btn" title="导出分组配置为 JSON">↓ 导出</button>
-            <button class="add-link-btn import-links-btn" title="从 JSON 导入分组配置（覆盖）">↑ 导入</button>
+            <button class="btn btn-primary" id="detail-add-link" style="font-size: 13px; padding: 6px 16px">添加链接</button>
+            <button class="btn export-links-btn" style="font-size: 13px; padding: 6px 16px">导出</button>
+            <button class="btn import-links-btn" style="font-size: 13px; padding: 6px 16px">导入</button>
           </div>
         </div>
         <div class="link-list">
@@ -189,7 +193,7 @@ function renderGroupDetail() {
 
         <div class="ai-prompt-section">
           <h3>AI文章生成提示词（选填）</h3>
-          <textarea class="input input-full ai-prompt-textarea" rows="13" placeholder="填写提示词后，将通过 AI 生成文章">${escapeHTML(group.aiPrompt || "")}</textarea>
+          <textarea class="input input-full ai-prompt-textarea" rows="33" placeholder="填写提示词后，将通过 AI 生成文章">${escapeHTML(group.aiPrompt || "")}</textarea>
         </div>
       </div>
     </div>
@@ -202,20 +206,6 @@ function renderGroupDetail() {
 /** 绑定右侧详情面板的事件 */
 function bindDetailEvents() {
   const detail = document.getElementById("group-detail");
-
-  // 分组名称变化 → 同步到左侧列表
-  const nameInput = detail.querySelector(".group-name-input");
-  nameInput.addEventListener("input", () => {
-    syncDetailToConfig();
-    // 更新左侧对应的名称
-    const listItems = document.querySelectorAll(".group-list-item");
-    if (listItems[selectedGroupIndex]) {
-      listItems[selectedGroupIndex].querySelector(
-        ".group-item-name",
-      ).textContent = nameInput.value.trim() || "未命名分组";
-    }
-    autoSave();
-  });
 
   // 添加链接
   detail.querySelector("#detail-add-link").addEventListener("click", () => {
@@ -446,6 +436,16 @@ async function startCollect(groupIndex) {
     return;
   }
 
+  if (!currentConfig.dateStart || !currentConfig.dateEnd) {
+    log("请选择完整的开始日期和结束日期", "error");
+    return;
+  }
+
+  if (currentConfig.dateStart > currentConfig.dateEnd) {
+    log("开始日期不能晚于结束日期", "error");
+    return;
+  }
+
   isCollecting = true;
   shouldStop = false;
 
@@ -479,9 +479,7 @@ async function startCollect(groupIndex) {
     log(`采集创作者: ${link}`, "info");
 
     try {
-      const { dateStart, dateEnd } = getDateRangeFromDays(
-        currentConfig.dateRange,
-      );
+      const { dateStart, dateEnd } = getDateRange(currentConfig);
 
       const rule = await matchCrawlerRule(link);
       if (!rule) {
@@ -513,7 +511,7 @@ async function startCollect(groupIndex) {
   if (allPosts.length > 0) {
     let markdown = `# 采集结果 - ${group.name}\n\n`;
     markdown += `> 采集时间: ${new Date().toLocaleString("zh-CN")}\n`;
-    markdown += `> 时间范围: 近 ${currentConfig.dateRange} 天\n`;
+    markdown += `> 时间范围: ${currentConfig.dateStart} 至 ${currentConfig.dateEnd}\n`;
     markdown += `> 共 ${allPosts.length} 条帖子\n\n---\n\n`;
 
     allPosts.forEach((post) => {
@@ -599,19 +597,42 @@ async function startCollect(groupIndex) {
 
 // ============ 初始化 ============
 
-function getDateRangeFromDays(days) {
-  const now = new Date();
-  const start = new Date(
-    now.getTime() - parseInt(days, 10) * 24 * 60 * 60 * 1000,
-  );
-  return { dateStart: start.toISOString(), dateEnd: now.toISOString() };
+function formatDateInput(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function getDefaultDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 1);
+  return {
+    dateStart: formatDateInput(start),
+    dateEnd: formatDateInput(end),
+  };
+}
+
+function withDefaultDateRange(config) {
+  const defaults = getDefaultDateRange();
+  return {
+    ...config,
+    dateStart: config.dateStart || defaults.dateStart,
+    dateEnd: config.dateEnd || defaults.dateEnd,
+  };
+}
+
+function getDateRange(config) {
+  return {
+    dateStart: new Date(`${config.dateStart}T00:00:00`).toISOString(),
+    dateEnd: new Date(`${config.dateEnd}T23:59:59.999`).toISOString(),
+  };
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   currentConfig = await loadConfig();
 
-  // 设置时间范围下拉框
-  document.getElementById("date-range").value = currentConfig.dateRange || "1";
+  // 设置时间范围
+  document.getElementById("date-start").value = currentConfig.dateStart;
+  document.getElementById("date-end").value = currentConfig.dateEnd;
 
   // 渲染左侧分组列表
   renderGroupList();
@@ -622,7 +643,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // 时间范围变化自动保存
-  document.getElementById("date-range").addEventListener("change", autoSave);
+  document.getElementById("date-start").addEventListener("change", autoSave);
+  document.getElementById("date-end").addEventListener("change", autoSave);
 
   // 添加分组
   document.getElementById("add-group").addEventListener("click", () => {
@@ -645,7 +667,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderGroupDetail();
 
     // 聚焦到新分组的名称输入框
-    const nameInput = document.querySelector("#group-detail .group-name-input");
+    const nameInput = document.querySelector(
+      `.group-list-item[data-index="${selectedGroupIndex}"] .group-name-input`,
+    );
     if (nameInput) nameInput.focus();
   });
 });

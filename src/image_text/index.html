@@ -13,18 +13,27 @@
         <aside class="sidebar">
           <section>
             <h2>采集时间范围</h2>
-            <select id="date-range" class="input input-full">
-              <option value="1" selected>近 1 天</option>
-              <option value="2">近 2 天</option>
-              <option value="3">近 3 天</option>
-              <option value="5">近 5 天</option>
-              <option value="7">近 7 天</option>
-            </select>
+            <div class="date-range-fields">
+              <label class="date-field">
+                <span>开始日期</span>
+                <input id="date-start" type="date" class="input input-full" />
+              </label>
+              <label class="date-field">
+                <span>结束日期</span>
+                <input id="date-end" type="date" class="input input-full" />
+              </label>
+            </div>
           </section>
           <section>
             <div class="section-header">
               <h2>分组</h2>
-              <button class="btn btn-sm" id="add-group">+ 添加分组</button>
+              <button
+                class="btn btn-primary"
+                id="add-group"
+                style="font-size: 13px; padding: 6px 16px"
+              >
+                添加分组
+              </button>
             </div>
             <div id="group-list">
               <!-- 动态渲染分组名称列表 -->
