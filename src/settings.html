@@ -127,90 +127,130 @@
         <header class="cors-header">
           <h1>CORS Unblock</h1>
           <p>解除浏览器跨域限制</p>
+          <div class="cors-config-actions">
+            <button
+              class="btn"
+              id="import-cors-config"
+              style="font-size: 13px; padding: 6px 16px"
+            >
+              导入
+            </button>
+            <button
+              class="btn"
+              id="export-cors-config"
+              style="font-size: 13px; padding: 6px 16px"
+            >
+              导出
+            </button>
+            <input
+              type="file"
+              id="import-cors-config-file"
+              accept=".json"
+              style="display: none"
+            />
+          </div>
         </header>
-        <div class="settings-grid cors-settings-grid">
-          <section class="settings-section form-section">
-            <h2>响应头</h2>
+        <div class="settings-grid cors-layout-grid">
+          <div class="cors-options-column">
+            <section class="settings-section form-section">
+              <h2>响应头</h2>
 
-            <div class="row">
-              <span class="mono">Access-Control-Allow-Origin</span>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-allow-origin" checked />
-                <span class="track"></span>
-              </label>
-            </div>
-
-            <div class="row">
-              <span class="mono">Access-Control-Allow-Methods</span>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-allow-methods" checked />
-                <span class="track"></span>
-              </label>
-            </div>
-
-            <div class="row">
-              <span class="mono">Access-Control-Allow-Headers</span>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-allow-headers" checked />
-                <span class="track"></span>
-              </label>
-            </div>
-
-            <div class="row">
-              <span class="mono">Access-Control-Expose-Headers</span>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-expose-headers" checked />
-                <span class="track"></span>
-              </label>
-            </div>
-          </section>
-
-          <section class="settings-section form-section">
-            <h2>高级</h2>
-
-            <div class="row">
-              <div>
-                <div class="label">移除 CSP 头</div>
-                <div class="hint">Content-Security-Policy 等</div>
+              <div class="row">
+                <span class="mono">Access-Control-Allow-Origin</span>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-allow-origin" checked />
+                  <span class="track"></span>
+                </label>
               </div>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-remove-csp" />
-                <span class="track"></span>
-              </label>
-            </div>
 
-            <div class="row">
-              <div>
-                <div class="label">移除 X-Frame-Options</div>
-                <div class="hint">允许跨域 iframe 嵌入</div>
+              <div class="row">
+                <span class="mono">Access-Control-Allow-Methods</span>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-allow-methods" checked />
+                  <span class="track"></span>
+                </label>
               </div>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-remove-xframe" />
-                <span class="track"></span>
-              </label>
-            </div>
 
-            <div class="row">
-              <div>
-                <div class="label">SharedArrayBuffer</div>
-                <div class="hint">添加 COOP / COEP 头</div>
+              <div class="row">
+                <span class="mono">Access-Control-Allow-Headers</span>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-allow-headers" checked />
+                  <span class="track"></span>
+                </label>
               </div>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-shared-array-buffer" />
-                <span class="track"></span>
-              </label>
-            </div>
 
-            <div class="row">
-              <div>
-                <div class="label">移除 Referer / Origin</div>
-                <div class="hint">对敏感服务器可能有效</div>
+              <div class="row">
+                <span class="mono">Access-Control-Expose-Headers</span>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-expose-headers" checked />
+                  <span class="track"></span>
+                </label>
               </div>
-              <label class="switch sm">
-                <input type="checkbox" id="cors-remove-referer-origin" />
-                <span class="track"></span>
-              </label>
+            </section>
+
+            <section class="settings-section form-section">
+              <h2>高级</h2>
+
+              <div class="row">
+                <div>
+                  <div class="label">移除 CSP 头</div>
+                  <div class="hint">Content-Security-Policy 等</div>
+                </div>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-remove-csp" />
+                  <span class="track"></span>
+                </label>
+              </div>
+
+              <div class="row">
+                <div>
+                  <div class="label">移除 X-Frame-Options</div>
+                  <div class="hint">允许跨域 iframe 嵌入</div>
+                </div>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-remove-xframe" />
+                  <span class="track"></span>
+                </label>
+              </div>
+
+              <div class="row">
+                <div>
+                  <div class="label">SharedArrayBuffer</div>
+                  <div class="hint">添加 COOP / COEP 头</div>
+                </div>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-shared-array-buffer" />
+                  <span class="track"></span>
+                </label>
+              </div>
+
+              <div class="row">
+                <div>
+                  <div class="label">移除 Referer / Origin</div>
+                  <div class="hint">对敏感服务器可能有效</div>
+                </div>
+                <label class="switch sm">
+                  <input type="checkbox" id="cors-remove-referer-origin" />
+                  <span class="track"></span>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <section class="settings-section form-section cors-url-section">
+            <div class="cors-url-header">
+              <div>
+                <h2>生效链接</h2>
+              </div>
+              <button
+                class="btn btn-primary"
+                id="add-cors-effective-url"
+                style="font-size: 13px; padding: 6px 16px"
+              >
+                添加
+              </button>
             </div>
+            <div id="cors-effective-url-list" class="cors-url-list"></div>
           </section>
         </div>
 

@@ -1,6 +1,8 @@
 import { showToast } from "./utils/ui.js";
 import { setCrawlerAutoConfirmTrue } from "./utils/inject-helpers.js";
 
+const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+
 const DEFAULT_CORS_CONFIG = {
   enabled: false,
   allowOrigin: true,
@@ -14,6 +16,7 @@ const DEFAULT_CORS_CONFIG = {
   sharedArrayBuffer: false,
   removeRefererOrigin: false,
   fixRedirect: false,
+  effectiveUrls: DEFAULT_CORS_EFFECTIVE_URLS,
 };
 
 /**
@@ -144,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await ensureCorsEnabled();
         chrome.tabs.create({
-          url: "https://www.undsky.com/doudou_canvas",
+          url: "https://undsky.com/doudou_canvas",
         });
       } catch (error) {
         showToast("开启 CORS 失败: " + error.message, "error");

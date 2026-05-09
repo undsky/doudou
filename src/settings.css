@@ -21,11 +21,11 @@ body {
 }
 
 .cors-panel {
-  max-width: 760px;
+  max-width: 980px;
 }
 
 .cors-header {
-  margin-bottom: 48px;
+  margin-bottom: 18px;
 }
 
 .cors-header h1 {
@@ -42,6 +42,12 @@ body {
   font-weight: 400;
 }
 
+.cors-config-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .cors-panel .panel-title {
   display: none;
 }
@@ -50,9 +56,16 @@ body {
   margin-bottom: 40px;
 }
 
-.cors-settings-grid {
+.cors-layout-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 36px;
+  align-items: start;
+}
+
+.cors-options-column {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 32px;
   align-items: start;
 }
@@ -113,6 +126,46 @@ body {
   color: #bbb;
   margin-top: 3px;
   font-weight: 400;
+}
+
+.cors-url-section {
+  min-width: 0;
+}
+
+.cors-url-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.cors-url-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cors-url-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cors-url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  color: #333;
+  font-size: 13px;
+}
+
+.cors-url-input:focus {
+  outline: none;
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
 }
 
 .cors-panel .switch {
@@ -183,8 +236,9 @@ body {
   text-align: center;
 }
 
-@media (max-width: 720px) {
-  .cors-settings-grid {
+@media (max-width: 900px) {
+  .cors-layout-grid,
+  .cors-options-column {
     grid-template-columns: 1fr;
     gap: 24px;
   }

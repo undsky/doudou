@@ -416,6 +416,8 @@ async function importCrawlerConfigs(file) {
   }
 }
 
+const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+
 const DEFAULT_CORS_CONFIG = {
   enabled: false,
   allowOrigin: true,
@@ -429,7 +431,10 @@ const DEFAULT_CORS_CONFIG = {
   sharedArrayBuffer: false,
   removeRefererOrigin: false,
   fixRedirect: false,
+  effectiveUrls: DEFAULT_CORS_EFFECTIVE_URLS,
 };
+
+let currentCorsConfig = { ...DEFAULT_CORS_CONFIG };
 
 const CORS_CONFIG_MAP = {
   enabled: "cors-enabled",
@@ -452,20 +457,179 @@ const CORS_UNSUPPORTED_KEYS = new Set([
   "fixRedirect",
 ]);
 
+function normalizeCorsEffectiveUrls(urls) {
+  const values = Array.isArray(urls) ? urls : DEFAULT_CORS_EFFECTIVE_URLS;
+  const normalized = [];
+  const seen = new Set();
+
+  for (const value of values) {
+    const raw = String(value || "").trim();
+    if (!raw) continue;
+
+    let url;
+    try {
+      url = new URL(raw);
+    } catch {
+      continue;
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+    const normalizedUrl = raw.split("#")[0];
+    if (!seen.has(normalizedUrl)) {
+      seen.add(normalizedUrl);
+      normalized.push(normalizedUrl);
+    }
+  }
+
+  return normalized.length > 0 ? normalized : [...DEFAULT_CORS_EFFECTIVE_URLS];
+}
+
+function collectCorsEffectiveUrlsFromUI() {
+  const inputs = document.querySelectorAll(".cors-url-input");
+  const urls = [];
+  const seen = new Set();
+
+  for (const input of inputs) {
+    const raw = input.value.trim();
+    if (!raw) continue;
+
+    let url;
+    try {
+      url = new URL(raw);
+    } catch {
+      throw new Error("生效链接格式不正确");
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("生效链接仅支持 http 或 https");
+    }
+
+    const normalizedUrl = raw.split("#")[0];
+    if (!seen.has(normalizedUrl)) {
+      seen.add(normalizedUrl);
+      urls.push(normalizedUrl);
+    }
+  }
+
+  return urls.length > 0 ? urls : [...DEFAULT_CORS_EFFECTIVE_URLS];
+}
+
+function addCorsEffectiveUrl(value = "", shouldFocus = true) {
+  const list = document.getElementById("cors-effective-url-list");
+  if (!list) return;
+
+  const item = document.createElement("div");
+  item.className = "cors-url-item";
+  item.innerHTML = `
+    <input type="url" class="cors-url-input" value="${escapeAttr(value)}" />
+    <button class="btn btn-danger" type="button">删除</button>
+  `;
+
+  const input = item.querySelector(".cors-url-input");
+  input.addEventListener("change", saveCorsSettings);
+
+  item.querySelector(".btn-danger").addEventListener("click", async () => {
+    item.remove();
+    if (!list.querySelector(".cors-url-item")) {
+      addCorsEffectiveUrl(DEFAULT_CORS_EFFECTIVE_URLS[0], false);
+    }
+    await saveCorsSettings();
+  });
+
+  list.appendChild(item);
+  if (shouldFocus) input.focus();
+}
+
+function renderCorsEffectiveUrls(urls) {
+  const list = document.getElementById("cors-effective-url-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+  normalizeCorsEffectiveUrls(urls).forEach((url) =>
+    addCorsEffectiveUrl(url, false),
+  );
+}
+
+function normalizeImportedCorsConfig(config) {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error("文件格式错误：需要 JSON 对象");
+  }
+
+  const nextConfig = { ...DEFAULT_CORS_CONFIG };
+  for (const key of Object.keys(DEFAULT_CORS_CONFIG)) {
+    if (key === "effectiveUrls") continue;
+    if (typeof config[key] === "boolean") {
+      nextConfig[key] = config[key];
+    }
+  }
+  nextConfig.effectiveUrls = normalizeCorsEffectiveUrls(config.effectiveUrls);
+  return nextConfig;
+}
+
+async function exportCorsConfig() {
+  try {
+    const config = {
+      ...currentCorsConfig,
+      effectiveUrls: collectCorsEffectiveUrlsFromUI(),
+    };
+    for (const [key, id] of Object.entries(CORS_CONFIG_MAP)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      config[key] = CORS_UNSUPPORTED_KEYS.has(key) ? false : el.checked;
+    }
+
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cors_config_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("✓ CORS 配置已导出", "success");
+  } catch (error) {
+    console.error("导出 CORS 配置失败:", error);
+    showToast(error.message || "导出失败", "error");
+  }
+}
+
+async function importCorsConfig(file) {
+  try {
+    const text = await file.text();
+    const imported = normalizeImportedCorsConfig(JSON.parse(text));
+    applyCorsConfigToUI(imported);
+    await saveCorsSettings(true);
+  } catch (error) {
+    console.error("导入 CORS 配置失败:", error);
+    showToast(error.message || "导入失败：文件格式不正确", "error");
+  }
+}
+
 function applyCorsConfigToUI(config) {
+  currentCorsConfig = {
+    ...DEFAULT_CORS_CONFIG,
+    ...config,
+    effectiveUrls: normalizeCorsEffectiveUrls(config.effectiveUrls),
+  };
+
   for (const [key, id] of Object.entries(CORS_CONFIG_MAP)) {
     const el = document.getElementById(id);
     if (!el) continue;
-    el.checked = !!config[key];
+    el.checked = !!currentCorsConfig[key];
     if (CORS_UNSUPPORTED_KEYS.has(key)) {
       el.disabled = true;
     }
   }
+
+  renderCorsEffectiveUrls(currentCorsConfig.effectiveUrls);
 }
 
 async function loadCorsSettings() {
   try {
-    const response = await chrome.runtime.sendMessage({ type: "GET_CORS_STATUS" });
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_CORS_STATUS",
+    });
     const config = {
       ...DEFAULT_CORS_CONFIG,
       ...(response?.config || {}),
@@ -477,15 +641,19 @@ async function loadCorsSettings() {
   }
 }
 
-async function saveCorsSettings() {
-  const config = {};
-  for (const [key, id] of Object.entries(CORS_CONFIG_MAP)) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    config[key] = CORS_UNSUPPORTED_KEYS.has(key) ? false : el.checked;
-  }
-
+async function saveCorsSettings(showSuccess = false) {
   try {
+    const config = {
+      ...currentCorsConfig,
+      effectiveUrls: collectCorsEffectiveUrlsFromUI(),
+    };
+
+    for (const [key, id] of Object.entries(CORS_CONFIG_MAP)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      config[key] = CORS_UNSUPPORTED_KEYS.has(key) ? false : el.checked;
+    }
+
     const response = await chrome.runtime.sendMessage({
       type: "CORS_UPDATE_CONFIG",
       config,
@@ -503,9 +671,12 @@ async function saveCorsSettings() {
 
     await chrome.storage.local.set({ corsConfig: nextConfig });
     applyCorsConfigToUI(nextConfig);
+    if (showSuccess) showToast("✓ 设置已保存", "success");
+    return nextConfig;
   } catch (error) {
     console.error("保存 CORS 配置失败:", error);
-    showToast("保存失败", "error");
+    showToast(error.message || "保存失败", "error");
+    throw error;
   }
 }
 
@@ -515,6 +686,26 @@ function initCorsEventListeners() {
     if (!el || CORS_UNSUPPORTED_KEYS.has(key)) continue;
     el.addEventListener("change", saveCorsSettings);
   }
+
+  document
+    .getElementById("add-cors-effective-url")
+    ?.addEventListener("click", () => addCorsEffectiveUrl());
+
+  document
+    .getElementById("export-cors-config")
+    ?.addEventListener("click", exportCorsConfig);
+
+  const importCorsConfigFile = document.getElementById("import-cors-config-file");
+  document
+    .getElementById("import-cors-config")
+    ?.addEventListener("click", () => importCorsConfigFile?.click());
+  importCorsConfigFile?.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      importCorsConfig(file);
+      importCorsConfigFile.value = "";
+    }
+  });
 }
 
 // ==================== AI 配置（多配置 + 侧边栏布局） ====================
@@ -1079,15 +1270,12 @@ function init() {
   }
 
   // AI 配置详情：自动保存
-  [
-    "openaiName",
-    "openaiBaseUrl",
-    "openaiApiKey",
-    "openaiModel",
-  ].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => saveOpenaiBasic(false));
-  });
+  ["openaiName", "openaiBaseUrl", "openaiApiKey", "openaiModel"].forEach(
+    (id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", () => saveOpenaiBasic(false));
+    },
+  );
 
   const openaiTestBtn = document.getElementById("openaiTestBtn");
   if (openaiTestBtn) openaiTestBtn.addEventListener("click", testOpenaiItem);

@@ -1336,6 +1336,8 @@ chrome.runtime.onStartup.addListener(() => {
 
 // ==================== CORS Unblock 逻辑 ====================
 
+const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+
 const DEFAULT_CORS_CONFIG = {
   enabled: false,
   allowOrigin: true,
@@ -1349,11 +1351,57 @@ const DEFAULT_CORS_CONFIG = {
   sharedArrayBuffer: false,
   removeRefererOrigin: false,
   fixRedirect: false,
+  effectiveUrls: DEFAULT_CORS_EFFECTIVE_URLS,
 };
 
 // CORS 规则 ID 范围 (避免与其他规则冲突)
 const CORS_RULE_ID_START = 9000;
-const CORS_RULE_ID_END = 9099;
+const CORS_RULE_ID_END = 9299;
+const CORS_SUBRESOURCE_TYPES = [
+  "sub_frame",
+  "stylesheet",
+  "script",
+  "image",
+  "font",
+  "object",
+  "xmlhttprequest",
+  "ping",
+  "csp_report",
+  "media",
+  "websocket",
+  "webtransport",
+  "webbundle",
+  "other",
+];
+
+let corsRefreshTimer = null;
+
+function normalizeCorsEffectiveUrls(urls) {
+  const values = Array.isArray(urls) ? urls : DEFAULT_CORS_EFFECTIVE_URLS;
+  const normalized = [];
+  const seen = new Set();
+
+  for (const value of values) {
+    const raw = String(value || "").trim();
+    if (!raw) continue;
+
+    let url;
+    try {
+      url = new URL(raw);
+    } catch {
+      continue;
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+    const normalizedUrl = raw.split("#")[0];
+    if (!seen.has(normalizedUrl)) {
+      seen.add(normalizedUrl);
+      normalized.push(normalizedUrl);
+    }
+  }
+
+  return normalized.length > 0 ? normalized : [...DEFAULT_CORS_EFFECTIVE_URLS];
+}
 
 function normalizeCorsConfig(config = {}) {
   return {
@@ -1362,26 +1410,69 @@ function normalizeCorsConfig(config = {}) {
     allowCredentials: false,
     noOverwrite: false,
     fixRedirect: false,
+    effectiveUrls: normalizeCorsEffectiveUrls(config.effectiveUrls),
   };
 }
 
+function isCorsEffectiveUrl(tabUrl, effectiveUrls) {
+  if (!tabUrl) return false;
+
+  let normalizedTabUrl;
+  try {
+    const url = new URL(tabUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    url.hash = "";
+    normalizedTabUrl = url.toString();
+  } catch {
+    return false;
+  }
+
+  return effectiveUrls.some((effectiveUrl) => {
+    if (normalizedTabUrl === effectiveUrl) return true;
+    if (effectiveUrl.endsWith("/")) return normalizedTabUrl.startsWith(effectiveUrl);
+    if (!normalizedTabUrl.startsWith(effectiveUrl)) return false;
+    const nextChar = normalizedTabUrl.charAt(effectiveUrl.length);
+    return nextChar === "/" || nextChar === "?" || nextChar === "";
+  });
+}
+
+async function getCorsEffectiveTabIds(effectiveUrls) {
+  const tabs = await chrome.tabs.query({});
+  return tabs
+    .filter((tab) => isCorsEffectiveUrl(tab.url, effectiveUrls))
+    .map((tab) => tab.id)
+    .filter((id) => Number.isInteger(id));
+}
+
+function makeCorsUrlFilter(url) {
+  return `|${url}`;
+}
+
 async function getCorsRuleIds() {
-  const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-  return existingRules
-    .filter((r) => r.id >= CORS_RULE_ID_START && r.id <= CORS_RULE_ID_END)
-    .map((r) => r.id);
+  const [dynamicRules, sessionRules] = await Promise.all([
+    chrome.declarativeNetRequest.getDynamicRules(),
+    chrome.declarativeNetRequest.getSessionRules(),
+  ]);
+
+  const inCorsRange = (rule) =>
+    rule.id >= CORS_RULE_ID_START && rule.id <= CORS_RULE_ID_END;
+
+  return {
+    dynamicRuleIds: dynamicRules.filter(inCorsRange).map((rule) => rule.id),
+    sessionRuleIds: sessionRules.filter(inCorsRange).map((rule) => rule.id),
+  };
 }
 
 async function getCorsStatus() {
   const { corsConfig } = await chrome.storage.local.get("corsConfig");
   const config = { ...DEFAULT_CORS_CONFIG, ...corsConfig };
   const effectiveConfig = normalizeCorsConfig(config);
-  const ruleIds = await getCorsRuleIds();
+  const { dynamicRuleIds, sessionRuleIds } = await getCorsRuleIds();
 
   return {
     config,
     effectiveConfig,
-    active: ruleIds.length > 0,
+    active: dynamicRuleIds.length + sessionRuleIds.length > 0,
     credentialsSupported: false,
   };
 }
@@ -1401,6 +1492,32 @@ async function restoreCorsRules() {
   }
 }
 
+async function refreshCorsRulesFromStorage() {
+  const { corsConfig } = await chrome.storage.local.get("corsConfig");
+  if (corsConfig?.enabled) {
+    await updateCorsRules(corsConfig);
+  }
+}
+
+function scheduleCorsRulesRefresh() {
+  clearTimeout(corsRefreshTimer);
+  corsRefreshTimer = setTimeout(() => {
+    refreshCorsRulesFromStorage().catch((error) => {
+      console.error("[豆豆] 刷新 CORS 规则失败:", error);
+    });
+  }, 100);
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url || changeInfo.status === "loading") {
+    scheduleCorsRulesRefresh();
+  }
+});
+
+chrome.tabs.onRemoved.addListener(() => {
+  scheduleCorsRulesRefresh();
+});
+
 /**
  * 根据配置更新 CORS 动态规则
  * @param {Object} config - CORS 配置对象
@@ -1408,14 +1525,17 @@ async function restoreCorsRules() {
 async function updateCorsRules(config) {
   try {
     const effectiveConfig = normalizeCorsConfig(config);
-    const corsRuleIds = await getCorsRuleIds();
+    const { dynamicRuleIds, sessionRuleIds } = await getCorsRuleIds();
 
     if (!effectiveConfig.enabled) {
-      if (corsRuleIds.length > 0) {
-        await chrome.declarativeNetRequest.updateDynamicRules({
-          removeRuleIds: corsRuleIds,
-        });
-      }
+      await Promise.all([
+        chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: dynamicRuleIds,
+        }),
+        chrome.declarativeNetRequest.updateSessionRules({
+          removeRuleIds: sessionRuleIds,
+        }),
+      ]);
       console.log("[豆豆] CORS Unblock 已禁用");
       return {
         active: false,
@@ -1424,8 +1544,46 @@ async function updateCorsRules(config) {
       };
     }
 
-    const rules = [];
+    const dynamicRules = [];
+    const sessionRules = [];
     let ruleId = CORS_RULE_ID_START;
+    const matchedTabIds = await getCorsEffectiveTabIds(effectiveConfig.effectiveUrls);
+
+    const nextRuleId = () => {
+      if (ruleId > CORS_RULE_ID_END) {
+        throw new Error("CORS 规则数量超出限制");
+      }
+      return ruleId++;
+    };
+
+    const addMainFrameRules = (action) => {
+      for (const url of effectiveConfig.effectiveUrls) {
+        dynamicRules.push({
+          id: nextRuleId(),
+          priority: 1,
+          action,
+          condition: {
+            urlFilter: makeCorsUrlFilter(url),
+            resourceTypes: ["main_frame"],
+          },
+        });
+      }
+    };
+
+    const addTabScopedRule = (action, resourceTypes) => {
+      if (matchedTabIds.length === 0) return;
+      sessionRules.push({
+        id: nextRuleId(),
+        priority: 1,
+        action,
+        condition: {
+          urlFilter: "*",
+          tabIds: matchedTabIds,
+          resourceTypes,
+        },
+      });
+    };
+
     const responseHeaderActions = [];
 
     if (effectiveConfig.allowOrigin) {
@@ -1468,34 +1626,12 @@ async function updateCorsRules(config) {
     });
 
     if (responseHeaderActions.length > 0) {
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          responseHeaders: responseHeaderActions,
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: [
-            "main_frame",
-            "sub_frame",
-            "stylesheet",
-            "script",
-            "image",
-            "font",
-            "object",
-            "xmlhttprequest",
-            "ping",
-            "csp_report",
-            "media",
-            "websocket",
-            "webtransport",
-            "webbundle",
-            "other",
-          ],
-        },
-      });
+      const action = {
+        type: "modifyHeaders",
+        responseHeaders: responseHeaderActions,
+      };
+      addMainFrameRules(action);
+      addTabScopedRule(action, CORS_SUBRESOURCE_TYPES);
     }
 
     if (effectiveConfig.removeCSP) {
@@ -1505,102 +1641,86 @@ async function updateCorsRules(config) {
         "X-WebKit-CSP",
         "X-Content-Security-Policy",
       ];
+      const action = {
+        type: "modifyHeaders",
+        responseHeaders: cspHeaders.map((header) => ({
+          header,
+          operation: "remove",
+        })),
+      };
 
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          responseHeaders: cspHeaders.map((header) => ({
-            header,
-            operation: "remove",
-          })),
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: ["main_frame", "sub_frame"],
-        },
-      });
+      addMainFrameRules(action);
+      addTabScopedRule(action, ["sub_frame"]);
     }
 
     if (effectiveConfig.removeXFrame) {
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          responseHeaders: [
-            {
-              header: "X-Frame-Options",
-              operation: "remove",
-            },
-          ],
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: ["main_frame", "sub_frame"],
-        },
-      });
+      const action = {
+        type: "modifyHeaders",
+        responseHeaders: [
+          {
+            header: "X-Frame-Options",
+            operation: "remove",
+          },
+        ],
+      };
+
+      addMainFrameRules(action);
+      addTabScopedRule(action, ["sub_frame"]);
     }
 
     if (effectiveConfig.sharedArrayBuffer) {
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          responseHeaders: [
-            {
-              header: "Cross-Origin-Opener-Policy",
-              operation: "set",
-              value: "same-origin",
-            },
-            {
-              header: "Cross-Origin-Embedder-Policy",
-              operation: "set",
-              value: "require-corp",
-            },
-          ],
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: ["main_frame"],
-        },
+      addMainFrameRules({
+        type: "modifyHeaders",
+        responseHeaders: [
+          {
+            header: "Cross-Origin-Opener-Policy",
+            operation: "set",
+            value: "same-origin",
+          },
+          {
+            header: "Cross-Origin-Embedder-Policy",
+            operation: "set",
+            value: "require-corp",
+          },
+        ],
       });
     }
 
     if (effectiveConfig.removeRefererOrigin) {
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: [
-            {
-              header: "Referer",
-              operation: "remove",
-            },
-            {
-              header: "Origin",
-              operation: "remove",
-            },
-          ],
-        },
-        condition: {
-          urlFilter: "*",
-          resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "other"],
-        },
-      });
+      const action = {
+        type: "modifyHeaders",
+        requestHeaders: [
+          {
+            header: "Referer",
+            operation: "remove",
+          },
+          {
+            header: "Origin",
+            operation: "remove",
+          },
+        ],
+      };
+
+      addMainFrameRules(action);
+      addTabScopedRule(action, ["sub_frame", "xmlhttprequest", "other"]);
     }
 
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: corsRuleIds,
-      addRules: rules,
-    });
+    await Promise.all([
+      chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: dynamicRuleIds,
+        addRules: dynamicRules,
+      }),
+      chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: sessionRuleIds,
+        addRules: sessionRules,
+      }),
+    ]);
 
-    console.log(`[豆豆] CORS Unblock 已启用，共 ${rules.length} 条规则`);
+    console.log(
+      `[豆豆] CORS Unblock 已启用，共 ${dynamicRules.length + sessionRules.length} 条规则，匹配 ${matchedTabIds.length} 个标签页`,
+    );
     return {
-      active: true,
+      active: dynamicRules.length + sessionRules.length > 0,
       effectiveConfig,
       credentialsSupported: false,
     };
