@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPA / SUB 转换 - 豆豆</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="layout">
+        <aside class="sidebar">
+          <header class="sidebar-header">
+            <p class="eyebrow">Converter</p>
+            <h1>CPA / SUB 转换</h1>
+            <p>
+              文件只在当前浏览器本地读取、解析、转换和下载，不会上传到服务器。
+            </p>
+          </header>
+
+          <form id="converter-form" class="converter-form">
+            <section>
+              <h2>输出模式</h2>
+              <fieldset class="mode-switch">
+                <legend>输出模式</legend>
+                <label class="mode-chip">
+                  <input
+                    type="radio"
+                    name="conversion_mode"
+                    value="compat"
+                    checked
+                  />
+                  <span class="mode-chip-content">
+                    <strong>兼容模式</strong>
+                    <small>生成标准字段，优先保证可直接使用</small>
+                  </span>
+                </label>
+                <label class="mode-chip">
+                  <input type="radio" name="conversion_mode" value="lossless" />
+                  <span class="mode-chip-content">
+                    <strong>保真模式</strong>
+                    <small>额外保留 cpa_* 或 __sub 信息，方便往返</small>
+                  </span>
+                </label>
+              </fieldset>
+            </section>
+
+            <section>
+              <h2>本地文件</h2>
+              <label class="file-field">
+                <input
+                  id="converter-file-input"
+                  type="file"
+                  accept=".json,.txt,application/json,text/plain"
+                  multiple
+                />
+                <span class="file-field-title">选择 JSON / TXT 文件</span>
+                <span class="file-field-desc">
+                  单文件支持 CPA、CPA 批量或 SUB；多文件仅支持 CPA 合并。
+                </span>
+              </label>
+            </section>
+
+            <section id="converter-selected" class="selected-files" hidden>
+              <div class="section-header">
+                <h2>已选择文件</h2>
+                <span id="selected-count" class="selected-count"></span>
+              </div>
+              <div id="converter-selected-list" class="selected-file-list"></div>
+            </section>
+
+            <div class="button-row">
+              <button id="convert-button" class="btn btn-primary" type="submit">
+                开始转换
+              </button>
+              <button id="clear-button" class="btn" type="button">清空</button>
+            </div>
+          </form>
+        </aside>
+
+        <main class="main-content">
+          <div class="main-header">
+            <div>
+              <p class="eyebrow">Result</p>
+              <h2>转换结果</h2>
+            </div>
+            <div class="button-row result-actions">
+              <button id="download-button" class="btn btn-primary" type="button" disabled>
+                下载结果
+              </button>
+              <button id="download-split-button" class="btn" type="button" hidden>
+                逐个下载 CPA
+              </button>
+            </div>
+          </div>
+
+          <div class="result-body">
+            <div id="status-panel" class="status-panel" data-state="idle" aria-live="polite">
+              <p id="status-title" class="status-title">尚未开始</p>
+              <p id="status-message" class="status-message">
+                选择 JSON 后点击“开始转换”，结果会在这里预览并提供下载。
+              </p>
+              <dl id="status-meta" class="status-meta" hidden>
+                <div>
+                  <dt>检测格式</dt>
+                  <dd id="status-input-format"></dd>
+                </div>
+                <div>
+                  <dt>转换方向</dt>
+                  <dd id="status-direction"></dd>
+                </div>
+                <div>
+                  <dt>输出文件</dt>
+                  <dd id="status-output-name"></dd>
+                </div>
+                <div>
+                  <dt>记录统计</dt>
+                  <dd id="status-counts"></dd>
+                </div>
+                <div>
+                  <dt>输出模式</dt>
+                  <dd id="status-mode"></dd>
+                </div>
+              </dl>
+            </div>
+
+            <div id="converter-badges" class="converter-pills" hidden></div>
+
+            <div id="converter-warning-box" class="warning-box" hidden>
+              <p class="warning-title">转换提示</p>
+              <ul id="converter-warning-list" class="warning-list"></ul>
+            </div>
+
+            <label class="preview-field">
+              <span>输出预览</span>
+              <pre id="output-preview" class="output-preview">转换成功后，这里会展示输出 JSON。</pre>
+            </label>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

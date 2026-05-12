@@ -531,6 +531,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // CPA / SUB 转换
+  const cpaSubConverterBtn = document.getElementById("cpa-sub-converter");
+  if (cpaSubConverterBtn) {
+    cpaSubConverterBtn.addEventListener("click", () => {
+      chrome.tabs.create({
+        url: "src/cpa_sub_converter/index.html",
+      });
+    });
+  }
+
   // CORS Unblock
   const corsUnblockBtn = document.getElementById("cors-unblock");
   const corsStatusEl = document.getElementById("cors-status");
