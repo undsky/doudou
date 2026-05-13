@@ -877,15 +877,24 @@ function initConverter() {
     }
 
     const flattenedCpa = [];
+    const flattenedSubAccounts = [];
+    let detectedKind = null;
+
     parsedFiles.forEach(({ file, payload }) => {
       const detected = detectFormat(payload);
-      if (detected === "sub") {
-        throw new Error(
-          `检测到 ${file.name} 是 SUB 包。一次只能处理一个 SUB 文件；多个文件时只支持 CPA 合并。`,
-        );
-      }
       if (detected === "unknown") {
         throw new Error(`无法识别 ${file.name} 的格式。`);
+      }
+
+      const currentKind = detected === "sub" ? "sub" : "cpa";
+      if (detectedKind && detectedKind !== currentKind) {
+        throw new Error("不能同时选择 CPA 和 SUB 文件，请分开转换。");
+      }
+      detectedKind = currentKind;
+
+      if (detected === "sub") {
+        flattenedSubAccounts.push(...payload.accounts);
+        return;
       }
       if (detected === "cpa") {
         flattenedCpa.push(payload);
@@ -895,6 +904,21 @@ function initConverter() {
         flattenedCpa.push(...payload);
       }
     });
+
+    if (detectedKind === "sub") {
+      if (flattenedSubAccounts.length === 0) {
+        throw new Error("没有找到可转换的 SUB 账号。");
+      }
+      return {
+        kind: "sub",
+        payload: {
+          type: "sub2api-data",
+          version: 1,
+          accounts: flattenedSubAccounts,
+        },
+        fileCount: parsedFiles.length,
+      };
+    }
 
     if (flattenedCpa.length === 0) {
       throw new Error("没有找到可合并的 CPA 记录。");
@@ -933,7 +957,7 @@ function initConverter() {
 
     const files = Array.from(fileInput.files || []);
     if (files.length === 0) {
-      setError("请先选择一个 SUB 文件，或一个/多个 CPA 文件。");
+      setError("请先选择一个/多个 SUB 文件，或一个/多个 CPA 文件。");
       return;
     }
 
