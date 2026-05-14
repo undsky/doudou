@@ -225,10 +225,12 @@ function initConverter() {
       ? asString(preferred.id)
       : asString(organizations[0]?.id);
 
+    const userId = asString(auth.user_id);
+
     return {
       email: asString(claims?.email),
-      chatgptAccountId: asString(auth.chatgpt_account_id),
-      chatgptUserId: asString(auth.chatgpt_user_id),
+      chatgptAccountId: asString(auth.chatgpt_account_id) || userId,
+      chatgptUserId: asString(auth.chatgpt_user_id) || userId,
       planType: asString(auth.chatgpt_plan_type),
       organizationId,
     };
