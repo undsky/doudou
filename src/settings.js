@@ -1313,6 +1313,30 @@ function init() {
   const exportCrawlerBtn = document.getElementById("exportCrawlerBtn");
   const importCrawlerBtn = document.getElementById("importCrawlerBtn");
   const importCrawlerFile = document.getElementById("importCrawlerFile");
+  const showCrawlerGuideBtn = document.getElementById("showCrawlerGuideBtn");
+  const guideModal = document.getElementById("guide-modal");
+  const closeGuideBtn = document.getElementById("btn-close-guide");
+
+  if (showCrawlerGuideBtn && guideModal) {
+    showCrawlerGuideBtn.addEventListener("click", () => {
+      guideModal.style.display = "flex";
+    });
+  }
+
+  if (closeGuideBtn && guideModal) {
+    closeGuideBtn.addEventListener("click", () => {
+      guideModal.style.display = "none";
+    });
+  }
+
+  if (guideModal) {
+    guideModal.addEventListener("click", (e) => {
+      if (e.target === guideModal) {
+        guideModal.style.display = "none";
+      }
+    });
+  }
+
   if (exportCrawlerBtn)
     exportCrawlerBtn.addEventListener("click", exportCrawlerConfigs);
   if (importCrawlerBtn)
