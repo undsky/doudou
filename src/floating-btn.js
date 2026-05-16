@@ -102,6 +102,7 @@
         border-radius: 8px;
         padding: 4px;
         box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        color: #333;
       }
       #doudou-floating-btn:hover .doudou-actions {
         display: flex;
@@ -112,6 +113,7 @@
         border-radius: 6px; cursor: pointer; font-size: 18px;
         transition: background-color 0.15s;
         position: relative; border: none; background: none; padding: 0;
+        color: #333;
       }
       #doudou-floating-btn .doudou-action-item:hover {
         background-color: #f0f0f0;
