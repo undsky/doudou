@@ -40,9 +40,14 @@
 
   const ACTIONS = [
     { id: "clone-article", icon: "📋", label: "AI文章复刻" },
-    { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
     { id: "screenshot", icon: "📸", label: "页面截图" },
+    {
+      id: "douyin-media-download",
+      icon: `<svg viewBox="0 0 448 512" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/></svg>`,
+      label: "抖音下载",
+    },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
+    { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
     { id: "summarize-page", icon: "📝", label: "总结页面" },
     { id: "translate", icon: "🌐", label: "翻译" },
   ];
@@ -288,7 +293,8 @@
 
     const selImg = document.createElement("img");
     selImg.src = fullScreenshot;
-    selImg.style.cssText = "position:absolute;pointer-events:none;max-width:none !important;max-height:none !important;";
+    selImg.style.cssText =
+      "position:absolute;pointer-events:none;max-width:none !important;max-height:none !important;";
     sel.appendChild(selImg);
 
     const handles = [];
@@ -755,7 +761,10 @@
       });
 
       port.onDisconnect.addListener(() => {
-        finish(full ? true : false, cleanLLMOutput(full) || new Error("连接断开"));
+        finish(
+          full ? true : false,
+          cleanLLMOutput(full) || new Error("连接断开"),
+        );
       });
     });
   }
@@ -858,11 +867,15 @@
     results.sort((a, b) => {
       const rectA = a.getBoundingClientRect();
       const rectB = b.getBoundingClientRect();
-      const topA = rectA.top + (a.ownerDocument.defaultView?.scrollY || window.scrollY);
-      const topB = rectB.top + (b.ownerDocument.defaultView?.scrollY || window.scrollY);
+      const topA =
+        rectA.top + (a.ownerDocument.defaultView?.scrollY || window.scrollY);
+      const topB =
+        rectB.top + (b.ownerDocument.defaultView?.scrollY || window.scrollY);
       if (Math.abs(topA - topB) < 10) {
-        const leftA = rectA.left + (a.ownerDocument.defaultView?.scrollX || window.scrollX);
-        const leftB = rectB.left + (b.ownerDocument.defaultView?.scrollX || window.scrollX);
+        const leftA =
+          rectA.left + (a.ownerDocument.defaultView?.scrollX || window.scrollX);
+        const leftB =
+          rectB.left + (b.ownerDocument.defaultView?.scrollX || window.scrollX);
         return leftA - leftB;
       }
       return topA - topB;
@@ -1283,7 +1296,7 @@
       const btn = document.createElement("button");
       btn.className = "doudou-action-item";
       btn.setAttribute("data-label", action.label);
-      btn.textContent = action.icon;
+      btn.innerHTML = action.icon;
       btn.addEventListener("mousedown", (e) => e.preventDefault());
 
       if (action.id === "screenshot") {
@@ -1345,6 +1358,16 @@
             if (isContextValid()) {
               chrome.runtime.sendMessage({ type: "DOUDOU_TRANSLATE_PAGE" });
             }
+            return;
+          }
+          if (action.id === "douyin-media-download") {
+            if (!location.hostname.includes("douyin.com")) {
+              alert("此功能仅在抖音网页端可用");
+              return;
+            }
+            window.dispatchEvent(
+              new CustomEvent("DOUDOU_TRIGGER_MEDIA_DOWNLOAD"),
+            );
             return;
           }
           if (action.id === "summarize-page") {

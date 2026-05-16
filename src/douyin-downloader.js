@@ -525,6 +525,11 @@
       }
       return true;
     });
+
+    // 监听来自网页悬浮按钮的事件
+    window.addEventListener('DOUDOU_TRIGGER_MEDIA_DOWNLOAD', () => {
+      handleDownloadMediaAction(null);
+    });
     
     // 启动请求拦截（尽早执行）
     interceptXHR();
