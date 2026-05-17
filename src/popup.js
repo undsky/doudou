@@ -492,40 +492,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 抖音媒体统一下载
-  const dyMediaBtn = document.getElementById('douyin-media-download');
+  const dyMediaBtn = document.getElementById("douyin-media-download");
   if (dyMediaBtn) {
-    dyMediaBtn.addEventListener('click', async () => {
+    dyMediaBtn.addEventListener("click", async () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs || tabs.length === 0) return;
-        
+
         const url = tabs[0].url;
-        if (!url.includes('douyin.com')) {
-          showToast('请在抖音网页版使用此功能');
+        if (!url.includes("douyin.com")) {
+          showToast("请在抖音网页版使用此功能", "error");
           return;
         }
 
         // 添加加载状态
-        dyMediaBtn.classList.add('loading');
+        dyMediaBtn.classList.add("loading");
 
         // 发送消息给 content script
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'downloadDouyinMediaAction' }, (response) => {
-          // 移除加载状态
-          setTimeout(() => {
-            dyMediaBtn.classList.remove('loading');
-          }, 500);
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { action: "downloadDouyinMediaAction" },
+          (response) => {
+            // 移除加载状态
+            setTimeout(() => {
+              dyMediaBtn.classList.remove("loading");
+            }, 500);
 
-          if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError);
-            showToast('请先刷新抖音页面');
-            return;
-          }
+            if (chrome.runtime.lastError) {
+              console.error(chrome.runtime.lastError);
+              showToast("请先刷新抖音页面");
+              return;
+            }
 
-          if (response && response.success) {
-            // content script 会自己处理 Toast
-          }
-          // 成功触发后关闭 popup
-          window.close();
-        });
+            if (response && response.success) {
+              // content script 会自己处理 Toast
+            }
+            // 成功触发后关闭 popup
+            window.close();
+          },
+        );
       });
     });
   }
