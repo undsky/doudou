@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("jsoneditor");
   const options = {
     // 编辑模式配置
-    mode: "tree",
+    mode: "code",
     modes: ["tree", "code", "form", "text", "view", "preview"],
 
     // 启用所有功能
