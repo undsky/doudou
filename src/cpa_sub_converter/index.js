@@ -671,18 +671,14 @@ function initConverter() {
 
     const extra = isPlainObject(account.extra) ? account.extra : {};
     const idToken = asString(credentials.id_token);
-    const openaiInfo = extractOpenAIInfo(idToken);
     const accessToken = asString(credentials.access_token);
+    const openaiInfo = extractOpenAIInfo(idToken) || extractOpenAIInfo(accessToken);
     const refreshToken = asString(credentials.refresh_token);
     const accountId =
       asString(credentials.chatgpt_account_id) || openaiInfo.chatgptAccountId;
 
     if (!accessToken) {
       warnings.push(`${sourceLabel} 缺少 access_token，已跳过。`);
-      return null;
-    }
-    if (!refreshToken) {
-      warnings.push(`${sourceLabel} 缺少 refresh_token，已跳过。`);
       return null;
     }
     if (!accountId) {
