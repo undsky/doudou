@@ -38,6 +38,50 @@
     }
   }
 
+  function isDoudouCanvasPage() {
+    return (
+      location.pathname.endsWith("/doudou_canvas.html") ||
+      (!!document.getElementById("add-script-node") &&
+        !!document.getElementById("canvas-container"))
+    );
+  }
+
+  function postCanvasSidePanelResponse(requestId, payload) {
+    window.postMessage(
+      {
+        type: "DOUDOU_OPEN_SIDE_PANEL_RESPONSE",
+        requestId,
+        source: "doudou-extension",
+        ...payload,
+      },
+      "*",
+    );
+  }
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    if (event.data?.type !== "DOUDOU_OPEN_SIDE_PANEL_REQUEST") return;
+    if (event.data?.source !== "doudou-canvas") return;
+    if (!isDoudouCanvasPage()) return;
+
+    const { requestId } = event.data;
+    if (!isContextValid()) {
+      postCanvasSidePanelResponse(requestId, {
+        success: false,
+        error: "扩展上下文不可用，请刷新页面后重试",
+      });
+      return;
+    }
+
+    chrome.runtime.sendMessage({ type: "OPEN_SIDE_PANEL" }, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      postCanvasSidePanelResponse(requestId, {
+        success: !!response?.success && !runtimeError,
+        error: runtimeError?.message || response?.error || "打开豆豆侧边栏失败",
+      });
+    });
+  });
+
   const ACTIONS = [
     { id: "clone-article", icon: "📋", label: "AI文章复刻" },
     { id: "screenshot", icon: "📸", label: "页面截图" },

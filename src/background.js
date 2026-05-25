@@ -31,6 +31,7 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "GET_CORS_STATUS",
   "DOUDOU_BTN_ACTION",
   "TOGGLE_SIDE_PANEL",
+  "OPEN_SIDE_PANEL",
   "ASK_AI",
   "SUMMARIZE_PAGE_ACTION",
   "GET_SIDEPANEL_STATUS",
@@ -377,6 +378,15 @@ async function handleMessage(request, sender) {
       } else {
         await chrome.sidePanel.open({ windowId });
       }
+      return { success: true };
+    }
+    case "OPEN_SIDE_PANEL": {
+      const windowId =
+        sender?.tab?.windowId ??
+        (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+          ?.windowId;
+      if (windowId == null) return { success: false, error: "无法获取窗口" };
+      await chrome.sidePanel.open({ windowId });
       return { success: true };
     }
     case "ASK_AI": {
