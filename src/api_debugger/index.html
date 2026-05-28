@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API 调试 - 豆豆</title>
+    <link href="../../lib/jsoneditor.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="page">
+      <aside class="sidebar">
+        <header class="sidebar-header">
+          <div>
+            <h1>API 调试</h1>
+          </div>
+          <div class="sidebar-actions">
+            <button id="import-json-button" class="btn btn-small" type="button">导入</button>
+            <button id="export-json-button" class="btn btn-small" type="button">导出</button>
+            <button id="add-interface-button" class="btn btn-primary" type="button">
+              新增
+            </button>
+            <input id="import-json-file" type="file" accept="application/json,.json" hidden />
+          </div>
+        </header>
+
+        <section class="curl-import">
+          <div class="section-title">cURL 导入</div>
+          <textarea
+            id="curl-input"
+            placeholder="粘贴 curl 命令"
+          ></textarea>
+          <button id="import-curl-button" class="btn" type="button">导入 cURL</button>
+        </section>
+
+        <section class="interface-section">
+          <div id="interface-list" class="interface-list"></div>
+        </section>
+      </aside>
+
+      <main class="main-content">
+        <div class="request-line panel">
+          <select id="request-method" class="method-select" aria-label="请求方式">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>DELETE</option>
+          </select>
+          <input
+            id="request-url"
+            class="url-input"
+            type="url"
+            placeholder="https://api.example.com/v1/resource"
+            autocomplete="off"
+          />
+          <select id="request-protocol" class="protocol-select" aria-label="HTTP 协议">
+            <option value="auto">auto</option>
+            <option value="http/1.1">http/1.1</option>
+            <option value="http/2">http/2</option>
+          </select>
+          <button id="send-button" class="btn btn-send" type="button">发送</button>
+        </div>
+
+        <div class="debugger-grid">
+          <section class="request-panel panel">
+            <div class="tabs" id="request-tabs">
+            <button class="tab active" data-tab="headers" type="button">Header</button>
+            <button class="tab" data-tab="query" type="button">Query</button>
+            <button class="tab" data-tab="body" type="button">Body</button>
+          </div>
+
+          <div class="tab-panels">
+            <section id="request-tab-headers" class="tab-panel active">
+              <div class="table-toolbar">
+                <span>请求头</span>
+                <button id="add-header-button" class="btn btn-primary btn-small" type="button">
+                  添加 Header
+                </button>
+              </div>
+              <div id="headers-table" class="kv-table"></div>
+            </section>
+
+            <section id="request-tab-query" class="tab-panel">
+              <div class="table-toolbar">
+                <span>Query 参数</span>
+                <button id="add-query-button" class="btn btn-primary btn-small" type="button">
+                  添加 Query
+                </button>
+              </div>
+              <div id="query-table" class="kv-table"></div>
+            </section>
+
+            <section id="request-tab-body" class="tab-panel">
+              <div class="body-mode-row">
+                <label><input type="radio" name="body-type" value="none" /> none</label>
+                <label><input type="radio" name="body-type" value="form-data" /> form-data</label>
+                <label><input type="radio" name="body-type" value="raw" /> raw</label>
+              </div>
+
+              <div id="body-form-data" class="body-subpanel">
+                <div class="table-toolbar">
+                  <span>Form Data</span>
+                  <button id="add-form-data-button" class="btn btn-primary btn-small" type="button">
+                    添加字段
+                  </button>
+                </div>
+                <div id="form-data-table" class="kv-table"></div>
+              </div>
+
+              <div id="body-raw" class="body-subpanel">
+                <div class="raw-toolbar">
+                  <span>Raw Body</span>
+                  <select id="raw-format" aria-label="Raw 格式">
+                    <option value="json">JSON</option>
+                    <option value="text">Text</option>
+                  </select>
+                </div>
+                <div id="raw-body-jsoneditor" class="raw-body-jsoneditor"></div>
+                <textarea id="raw-body" class="raw-body" spellcheck="false"></textarea>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="response-panel panel">
+          <div class="response-title-row">
+            <div>
+              <h2>响应</h2>
+              <p id="response-summary" class="response-summary">尚未发送请求</p>
+            </div>
+            <div class="response-actions">
+              <button id="copy-response-button" class="btn btn-small" type="button">复制</button>
+              <button id="clear-response-button" class="btn btn-small" type="button">清空</button>
+            </div>
+          </div>
+
+          <div class="tabs" id="response-tabs">
+            <button class="tab active" data-tab="beautified" type="button">实时响应</button>
+            <button class="tab" data-tab="raw" type="button">原生</button>
+            <button class="tab" data-tab="headers" type="button">响应头</button>
+            <button class="tab" data-tab="request" type="button">实际请求</button>
+          </div>
+
+          <div class="response-content">
+            <div id="response-beautified" class="response-view active">
+              <div id="response-jsoneditor"></div>
+              <pre id="response-text-preview" class="response-pre" hidden></pre>
+            </div>
+            <pre id="response-raw" class="response-view response-pre"></pre>
+            <pre id="response-headers" class="response-view response-pre"></pre>
+            <pre id="actual-request" class="response-view response-pre"></pre>
+          </div>
+        </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="../../lib/jsoneditor.min.js"></script>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

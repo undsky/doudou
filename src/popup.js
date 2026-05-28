@@ -595,6 +595,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // API 调试
+  const apiDebuggerBtn = document.getElementById("api-debugger");
+  if (apiDebuggerBtn) {
+    apiDebuggerBtn.addEventListener("click", () => {
+      chrome.tabs.create({
+        url: "src/api_debugger/index.html",
+      });
+    });
+  }
+
   // CPA / SUB 转换
   const cpaSubConverterBtn = document.getElementById("cpa-sub-converter");
   if (cpaSubConverterBtn) {
