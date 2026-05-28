@@ -94,7 +94,6 @@ function cacheDom() {
   dom.clearResponseButton = document.getElementById("clear-response-button");
   dom.responseJsoneditor = document.getElementById("response-jsoneditor");
   dom.responseTextPreview = document.getElementById("response-text-preview");
-  dom.responseRaw = document.getElementById("response-raw");
   dom.responseHeaders = document.getElementById("response-headers");
   dom.actualRequest = document.getElementById("actual-request");
 }
@@ -850,7 +849,6 @@ async function readResponseBody(response) {
 function updateStreamingRaw(rawText) {
   if (!state.response) return;
   state.response.rawText = rawText;
-  dom.responseRaw.textContent = rawText;
   if (!state.response.isJson) dom.responseTextPreview.textContent = rawText;
 }
 
@@ -891,7 +889,7 @@ function renderRequestError(error, actualRequest) {
     isJson: false,
     error: error.message || String(error),
   };
-  state.responseTab = "raw";
+  state.responseTab = "beautified";
   renderResponse();
 }
 
@@ -901,7 +899,6 @@ function renderResponse() {
   if (!response) {
     dom.responseSummary.className = "response-summary";
     dom.responseSummary.textContent = "尚未发送请求";
-    dom.responseRaw.textContent = "";
     dom.responseHeaders.textContent = "";
     dom.actualRequest.textContent = "";
     dom.responseTextPreview.hidden = false;
@@ -916,7 +913,6 @@ function renderResponse() {
   const summary = formatSummary(response);
   dom.responseSummary.className = `response-summary ${response.error ? "error" : response.ok ? "success" : "error"}`;
   dom.responseSummary.textContent = summary;
-  dom.responseRaw.textContent = response.rawText || "";
   dom.responseHeaders.textContent = response.headersText || "";
   dom.actualRequest.textContent = response.actualRequest || "";
 
@@ -951,7 +947,6 @@ function renderResponseTabs() {
 
   const map = {
     beautified: document.getElementById("response-beautified"),
-    raw: dom.responseRaw,
     headers: dom.responseHeaders,
     request: dom.actualRequest,
   };
