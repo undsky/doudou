@@ -265,8 +265,7 @@ function initConverter() {
     isPlainObject(value) &&
     typeof value.access_token === "string" &&
     typeof value.refresh_token === "string" &&
-    typeof value.id_token === "string" &&
-    typeof value.account_id === "string";
+    (typeof value.id_token === "string" || typeof value.account_id === "string");
 
   const isWrappedCpaLike = (value) =>
     isPlainObject(value) && isPlainObject(value.tokens) && isCpaLike(value.tokens);
