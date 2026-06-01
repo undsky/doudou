@@ -1,1 +1,0 @@
-import{t as e}from"./md-rolldown-runtime-CkD7bpl4.js";var t=e(((e,t)=>{t.exports={trueFunc:function(){return!0},falseFunc:function(){return!1}}}));export{t};

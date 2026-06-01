@@ -1740,26 +1740,76 @@ var require_background = __commonJS({
       type: "wechat"
     };
     async function fillWechatContent(title, htmlBody) {
-      var _a, _b, _c;
-      try {
-        const editor = await window.waitFor(".ProseMirror", 15e3);
-        if (!editor) {
-          return { success: false, error: "未找到编辑器" };
+      var _a, _b, _c, _d, _e;
+      function pickWechatBodyProseMirror() {
+        const nodes = [...document.querySelectorAll(".ProseMirror")];
+        if (nodes.length === 0)
+          return null;
+        if (nodes.length === 1)
+          return nodes[0];
+        const byPlaceholder = nodes.find(
+          (el) => (el.textContent || "").includes("从这里开始写正文")
+        );
+        if (byPlaceholder)
+          return byPlaceholder;
+        const titleInput = document.querySelector("#title");
+        if (titleInput) {
+          const band = titleInput.getBoundingClientRect();
+          const belowTitle = nodes.filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.top >= band.bottom - 8;
+          });
+          if (belowTitle.length > 0) {
+            return belowTitle.sort(
+              (a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth
+            )[0];
+          }
         }
-        const titleInput = await window.waitFor("#title");
-        if (titleInput && title) {
-          titleInput.focus();
-          const nativeSetter = (_a = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")) == null ? void 0 : _a.set;
-          if (nativeSetter) {
+        return nodes.sort(
+          (a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth
+        )[0];
+      }
+      async function waitForBodyEditor(timeout = 15e3) {
+        const start = Date.now();
+        while (Date.now() - start < timeout) {
+          const el = pickWechatBodyProseMirror();
+          if (el)
+            return el;
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        return pickWechatBodyProseMirror();
+      }
+      try {
+        const titleInput = await window.waitFor("#title", 15e3);
+        const titleEditor = await window.waitFor(".title-editor__input .ProseMirror", 15e3);
+        if ((titleInput || titleEditor) && title) {
+          if (titleEditor) {
+            titleEditor.focus();
+            titleEditor.innerHTML = "";
+            titleEditor.textContent = title;
+            titleEditor.dispatchEvent(new Event("input", { bubbles: true }));
+            titleEditor.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          if (titleInput) {
+            titleInput.focus();
+          }
+          const nativeSetter = ((_a = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")) == null ? void 0 : _a.set) || ((_b = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")) == null ? void 0 : _b.set);
+          if (titleInput && nativeSetter) {
             nativeSetter.call(titleInput, title);
-          } else {
+          } else if (titleInput) {
             titleInput.value = title;
           }
-          titleInput.dispatchEvent(new Event("input", { bubbles: true }));
-          titleInput.dispatchEvent(new Event("change", { bubbles: true }));
+          if (titleInput) {
+            titleInput.dispatchEvent(new Event("input", { bubbles: true }));
+            titleInput.dispatchEvent(new Event("change", { bubbles: true }));
+          }
           console.log("[COSE] 微信标题已填充:", title);
         }
         await new Promise((r) => setTimeout(r, 300));
+        const editor = await waitForBodyEditor(15e3);
+        if (!editor) {
+          return { success: false, error: "未找到正文编辑器" };
+        }
         if (editor && htmlBody) {
           editor.focus();
           if (editor.textContent.includes("从这里开始写正文")) {
@@ -1802,7 +1852,7 @@ var require_background = __commonJS({
             console.log("[COSE] 微信内容已通过 paste 事件注入（降级方案）");
             await new Promise((r) => setTimeout(r, 500));
           }
-          const wordCount = ((_b = editor.textContent) == null ? void 0 : _b.length) || 0;
+          const wordCount = ((_c = editor.textContent) == null ? void 0 : _c.length) || 0;
           if (wordCount === 0) {
             console.log("[COSE] 粘贴未生效，尝试直接设置 innerHTML");
             editor.innerHTML = htmlBody;
@@ -1810,8 +1860,8 @@ var require_background = __commonJS({
           }
           return {
             success: true,
-            wordCount: ((_c = editor.textContent) == null ? void 0 : _c.length) || 0,
-            titleFilled: (titleInput == null ? void 0 : titleInput.value) === title
+            wordCount: ((_d = editor.textContent) == null ? void 0 : _d.length) || 0,
+            titleFilled: (titleInput == null ? void 0 : titleInput.value) === title || ((_e = titleEditor == null ? void 0 : titleEditor.textContent) == null ? void 0 : _e.trim()) === title
           };
         }
         return { success: false, error: "内容为空" };
@@ -2087,20 +2137,141 @@ var require_background = __commonJS({
       const fillResult = (_a = result == null ? void 0 : result[0]) == null ? void 0 : _a.result;
       if (fillResult == null ? void 0 : fillResult.success) {
         await new Promise((resolve) => setTimeout(resolve, 2e3));
-        try {
-          if ((chrome == null ? void 0 : chrome.tabs) && (tab == null ? void 0 : tab.id)) {
-            await chrome.tabs.reload(tab.id, { bypassCache: false });
-            console.log("[COSE] 已模拟用户刷新知乎页面");
-          } else {
-            console.log("[COSE] chrome.tabs 或 tab.id 不可用，跳过刷新");
+        console.log("[COSE] 开始监听图片上传请求...");
+        const uploadComplete = await waitForImageUploadComplete(tab.id);
+        if (uploadComplete) {
+          console.log("[COSE] 图片上传完成，准备刷新页面");
+          try {
+            if ((chrome == null ? void 0 : chrome.tabs) && (tab == null ? void 0 : tab.id)) {
+              await chrome.tabs.reload(tab.id, { bypassCache: false });
+              console.log("[COSE] 已模拟用户刷新知乎页面");
+            } else {
+              console.log("[COSE] chrome.tabs 或 tab.id 不可用，跳过刷新");
+            }
+          } catch (err) {
+            console.log("[COSE] 刷新页面失败:", err.message || err);
           }
-        } catch (err) {
-          console.log("[COSE] 刷新页面失败:", err.message || err);
+        } else {
+          console.log("[COSE] 未检测到图片上传请求或超时，跳过刷新");
         }
         return { success: true, message: "已打开知乎并同步内容", tabId: tab.id };
       } else {
         return { success: false, message: (fillResult == null ? void 0 : fillResult.error) || "内容同步失败", tabId: tab.id };
       }
+    }
+    async function waitForImageUploadComplete(tabId, timeout = 3e4) {
+      var _a;
+      const result = await globalThis.chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          return new Promise((resolve) => {
+            const pendingUploads = /* @__PURE__ */ new Map();
+            let hasUploadRequests = false;
+            let lastUploadTime = 0;
+            const checkAllComplete = () => {
+              if (pendingUploads.size === 0) return false;
+              for (const [id, info] of pendingUploads) {
+                if (!info.completed) return false;
+              }
+              return true;
+            };
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+              const url = args[0];
+              const options = args[1] || {};
+              const isImageUpload = typeof url === "string" && (url.includes("/api/v4/images") || url.includes("/api/v4/upload") || url.includes("upload") || options.method === "POST" && url.includes("zhihu.com"));
+              if (isImageUpload) {
+                hasUploadRequests = true;
+                lastUploadTime = Date.now();
+                const uploadId = Date.now() + Math.random();
+                pendingUploads.set(uploadId, { url, completed: false });
+                console.log("[COSE] 检测到图片上传请求:", url, uploadId);
+              }
+              return originalFetch.apply(this, args).then((response) => {
+                if (isImageUpload) {
+                  console.log("[COSE] 图片上传请求完成:", url, response.status);
+                  for (const [id, info] of pendingUploads) {
+                    if (info.url === url) {
+                      info.completed = true;
+                      break;
+                    }
+                  }
+                }
+                return response;
+              }).catch((error) => {
+                if (isImageUpload) {
+                  console.log("[COSE] 图片上传请求失败:", url, error);
+                  for (const [id, info] of pendingUploads) {
+                    if (info.url === url) {
+                      info.completed = true;
+                      break;
+                    }
+                  }
+                }
+                throw error;
+              });
+            };
+            const originalOpen = XMLHttpRequest.prototype.open;
+            const originalSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+              this._url = url;
+              this._method = method;
+              return originalOpen.apply(this, [method, url, ...rest]);
+            };
+            XMLHttpRequest.prototype.send = function(...args) {
+              const isImageUpload = this._url && (this._url.includes("/api/v4/images") || this._url.includes("/api/v4/upload") || this._url.includes("upload") || this._method === "POST" && this._url.includes("zhihu.com"));
+              if (isImageUpload) {
+                hasUploadRequests = true;
+                lastUploadTime = Date.now();
+                const uploadId = Date.now() + Math.random();
+                pendingUploads.set(uploadId, { url: this._url, completed: false });
+                console.log("[COSE] 检测到图片上传 XHR:", this._url, uploadId);
+                this.addEventListener("loadend", () => {
+                  console.log("[COSE] 图片上传 XHR 完成:", this._url, this.status);
+                  for (const [id, info] of pendingUploads) {
+                    if (info.url === this._url) {
+                      info.completed = true;
+                      break;
+                    }
+                  }
+                });
+              }
+              return originalSend.apply(this, args);
+            };
+            const checkTimer = setInterval(() => {
+              if (!hasUploadRequests) {
+                console.log("[COSE] 未检测到图片上传请求");
+                clearInterval(checkTimer);
+                resolve(true);
+                return;
+              }
+              if (checkAllComplete() && Date.now() - lastUploadTime > 2e3) {
+                console.log("[COSE] 所有图片上传请求已完成");
+                clearInterval(checkTimer);
+                resolve(true);
+                return;
+              }
+            }, 500);
+            setTimeout(() => {
+              if (!hasUploadRequests) {
+                console.log("[COSE] 10秒内未检测到上传请求，认为无图片");
+                clearInterval(checkTimer);
+                resolve(true);
+              }
+            }, 1e4);
+            setTimeout(() => {
+              console.log("[COSE] 等待图片上传超时");
+              clearInterval(checkTimer);
+              resolve(true);
+            }, timeout);
+          });
+        },
+        world: "MAIN"
+      });
+      const uploadResult = (_a = result == null ? void 0 : result[0]) == null ? void 0 : _a.result;
+      console.log("[COSE] 图片上传监听结果:", uploadResult);
+      await new Promise((resolve) => setTimeout(resolve, 2e3));
+      return uploadResult !== false;
     }
     const ToutiaoPlatform = {
       id: "toutiao",
@@ -2891,14 +3062,19 @@ var require_background = __commonJS({
       }
     }
     globalThis.__coseDetectXiaohongshu = detectXiaohongshuViaOffscreen;
-    const COSE_DYNAMIC_RULE_IDS = [1, 2, 1000, 1001];
     async function initDynamicRules() {
       try {
+        const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+        const existingIds = existingRules.map((r) => r.id);
+        if (existingIds.length > 0) {
+          await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: existingIds
+          });
+        }
         await chrome.declarativeNetRequest.updateDynamicRules({
-          removeRuleIds: COSE_DYNAMIC_RULE_IDS,
           addRules: [
             {
-              id: 1000,
+              id: 1,
               priority: 100,
               action: {
                 type: "modifyHeaders",
@@ -2916,7 +3092,7 @@ var require_background = __commonJS({
               }
             },
             {
-              id: 1001,
+              id: 2,
               priority: 100,
               action: {
                 type: "modifyHeaders",
@@ -2946,9 +3122,6 @@ var require_background = __commonJS({
     chrome.runtime.onStartup.addListener(() => {
       initDynamicRules();
     });
-    chrome.action.onClicked.addListener(() => {
-      chrome.tabs.create({ url: "https://md.doocs.org" });
-    });
     let currentSyncGroupId = null;
     async function addTabToSyncGroup(tabId, windowId) {
       try {
@@ -2968,23 +3141,8 @@ var require_background = __commonJS({
         console.error("[COSE] 添加标签到组失败:", error);
       }
     }
-    // COSE 处理的消息类型
-    const COSE_MESSAGE_TYPES = new Set([
-      "GET_PLATFORMS",
-      "CHECK_PLATFORM_STATUS",
-      "CHECK_PLATFORM_STATUS_PROGRESSIVE",
-      "START_SYNC_BATCH",
-      "SYNC_TO_PLATFORM",
-      "CACHE_USER_INFO",
-      "GET_DEBUG_LOGS"
-    ]);
-
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.type && request.type.startsWith("OFFSCREEN_")) {
-        return false;
-      }
-      // 只处理 COSE 的消息类型，其他的交给豆豆处理
-      if (!COSE_MESSAGE_TYPES.has(request.type)) {
         return false;
       }
       if (request.type === "GET_DEBUG_LOGS") {
@@ -3429,8 +3587,8 @@ var require_background = __commonJS({
                 html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
                 html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
                 html = html.replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>");
-                html = html.replace(/^---$/gm, "<hr />");
-                html = html.replace(/^\*\*\*$/gm, "<hr />");
+                html = html.replace(/^---$/gm, "<p>---</p>");
+                html = html.replace(/^\*\*\*$/gm, "<p>***</p>");
                 html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%;" />');
                 html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
                 html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -3438,13 +3596,15 @@ var require_background = __commonJS({
                 html = html.replace(/~~([^~]+)~~/g, "<s>$1</s>");
                 codeBlocks.forEach((block, index) => {
                   const escapedCode = block.code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-                  const langLabel = block.lang ? `<div style="background: #e1e4e8; padding: 4px 12px; font-size: 12px; color: #586069; border-radius: 6px 6px 0 0;">${block.lang}</div>` : "";
-                  const codeHtml = `<div style="margin: 16px 0;">${langLabel}<pre style="background: #f6f8fa; padding: 16px; border-radius: ${block.lang ? "0 0 6px 6px" : "6px"}; overflow-x: auto; font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 14px; line-height: 1.45; margin: 0; white-space: pre-wrap; word-wrap: break-word;"><code>${escapedCode}</code></pre></div>`;
+                  const lines2 = escapedCode.split("\n").filter((line) => line.trim());
+                  const formattedCode = lines2.join("<br>");
+                  const langPrefix = block.lang ? `<strong>${block.lang}</strong><br>` : "";
+                  const codeHtml = `<blockquote>${langPrefix}${formattedCode}</blockquote>`;
                   html = html.replace(`__CODE_BLOCK_${index}__`, codeHtml);
                 });
                 inlineCodes.forEach((code, index) => {
                   const escapedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                  const codeHtml = `<code style="background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-family: 'SF Mono', Consolas, monospace; font-size: 0.9em;">${escapedCode}</code>`;
+                  const codeHtml = `<code>${escapedCode}</code>`;
                   html = html.replace(`__INLINE_CODE_${index}__`, codeHtml);
                 });
                 blockFormulas.forEach((formula, index) => {
