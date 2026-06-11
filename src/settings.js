@@ -79,6 +79,10 @@ function switchTab(tabId) {
   if (tabId === "openai") {
     loadOpenaiList();
   }
+  // 如果切换到开放接口，刷新状态
+  if (tabId === "openapi") {
+    loadOpenApiSettings();
+  }
   // 如果切换到 API，刷新状态
   if (tabId === "api") {
     checkApiStatus();
@@ -1229,6 +1233,167 @@ async function testOpenaiItem() {
   }
 }
 
+const DEFAULT_OPENAPI_CONFIG = {
+  enabled: false,
+};
+
+let currentOpenApiConfig = { ...DEFAULT_OPENAPI_CONFIG };
+let currentOpenApiSecrets = {};
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashOpenApiToken(token) {
+  const data = new TextEncoder().encode(token);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return bytesToHex(new Uint8Array(hash));
+}
+
+function generateOpenApiTokenValue() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+
+function getOpenApiExample() {
+  return `启动本地 HTTP 服务：
+node tools/openapi-server.cjs
+
+HTTP URL 调用：
+http://127.0.0.1:17878/open?token=这里填写生成的Token&url=${encodeURIComponent("https://www.undsky.com/doudou")}&active=true
+
+查看队列状态：
+http://127.0.0.1:17878/status`;
+}
+
+function applyOpenApiSettingsToUI() {
+  const enabledEl = document.getElementById("openapi-enabled");
+  const tokenStatusEl = document.getElementById("openapi-token-status");
+  const tokenResultEl = document.getElementById("openapi-token-result");
+  const tokenValueEl = document.getElementById("openapi-token-value");
+  const exampleEl = document.getElementById("openapi-example");
+
+  if (enabledEl) enabledEl.checked = !!currentOpenApiConfig.enabled;
+  if (exampleEl) exampleEl.textContent = getOpenApiExample();
+
+  if (tokenStatusEl) {
+    tokenStatusEl.textContent = currentOpenApiSecrets.tokenHash
+      ? "已生成 Token"
+      : "未生成 Token";
+    tokenStatusEl.classList.toggle("ready", !!currentOpenApiSecrets.tokenHash);
+  }
+  if (tokenResultEl) tokenResultEl.style.display = "none";
+  if (tokenValueEl) tokenValueEl.textContent = "";
+}
+
+async function loadOpenApiSettings() {
+  try {
+    const [{ openapiConfig = {} }, { openapiSecrets = {} }] = await Promise.all([
+      chrome.storage.sync.get("openapiConfig"),
+      chrome.storage.local.get("openapiSecrets"),
+    ]);
+    currentOpenApiConfig = {
+      ...DEFAULT_OPENAPI_CONFIG,
+      ...openapiConfig,
+    };
+    currentOpenApiSecrets = openapiSecrets || {};
+    applyOpenApiSettingsToUI();
+  } catch (error) {
+    console.error("加载开放接口配置失败:", error);
+    showToast("加载开放接口配置失败", "error");
+  }
+}
+
+async function saveOpenApiSettings(showSuccess = true) {
+  try {
+    const enabledEl = document.getElementById("openapi-enabled");
+    const enabled = !!enabledEl?.checked;
+
+    if (enabled && !currentOpenApiSecrets.tokenHash) {
+      if (enabledEl) enabledEl.checked = false;
+      throw new Error("请先生成 Token");
+    }
+    currentOpenApiConfig = {
+      ...currentOpenApiConfig,
+      enabled,
+    };
+    await chrome.storage.sync.set({ openapiConfig: currentOpenApiConfig });
+    applyOpenApiSettingsToUI();
+    if (showSuccess) showToast("✓ 设置已保存", "success");
+  } catch (error) {
+    console.error("保存开放接口配置失败:", error);
+    showToast(error.message || "保存开放接口配置失败", "error");
+    await loadOpenApiSettings();
+  }
+}
+
+async function generateOpenApiToken() {
+  try {
+    const token = generateOpenApiTokenValue();
+    currentOpenApiSecrets = {
+      tokenHash: await hashOpenApiToken(token),
+      tokenCreatedAt: Date.now(),
+    };
+    await chrome.storage.local.set({ openapiSecrets: currentOpenApiSecrets });
+
+    const tokenResultEl = document.getElementById("openapi-token-result");
+    const tokenValueEl = document.getElementById("openapi-token-value");
+    if (tokenValueEl) tokenValueEl.textContent = token;
+    if (tokenResultEl) tokenResultEl.style.display = "flex";
+    applyOpenApiSettingsToUI();
+    if (tokenValueEl) tokenValueEl.textContent = token;
+    if (tokenResultEl) tokenResultEl.style.display = "flex";
+    showToast("✓ Token 已生成，请立即复制保存", "success");
+  } catch (error) {
+    console.error("生成开放接口 Token 失败:", error);
+    showToast("生成 Token 失败", "error");
+  }
+}
+
+async function clearOpenApiToken() {
+  if (!(await showConfirm("清除 Token 后，现有外部程序将无法继续调用。确定清除吗？"))) {
+    return;
+  }
+
+  currentOpenApiSecrets = {};
+  currentOpenApiConfig = { ...currentOpenApiConfig, enabled: false };
+  await Promise.all([
+    chrome.storage.local.set({ openapiSecrets: currentOpenApiSecrets }),
+    chrome.storage.sync.set({ openapiConfig: currentOpenApiConfig }),
+  ]);
+  applyOpenApiSettingsToUI();
+  showToast("Token 已清除", "success");
+}
+
+async function copyText(text, successMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(successMessage, "success");
+  } catch (error) {
+    console.error("复制失败:", error);
+    showToast("复制失败", "error");
+  }
+}
+
+function initOpenApiEventListeners() {
+  document
+    .getElementById("openapi-enabled")
+    ?.addEventListener("change", () => saveOpenApiSettings());
+  document
+    .getElementById("generate-openapi-token")
+    ?.addEventListener("click", generateOpenApiToken);
+  document
+    .getElementById("clear-openapi-token")
+    ?.addEventListener("click", clearOpenApiToken);
+  document.getElementById("copy-openapi-token")?.addEventListener("click", () => {
+    const token = document.getElementById("openapi-token-value")?.textContent || "";
+    if (token) copyText(token, "✓ Token 已复制");
+  });
+}
+
 /**
  * 初始化
  */
@@ -1247,6 +1412,9 @@ function init() {
 
   // 自动保存 - CORS 配置
   initCorsEventListeners();
+
+  // 事件绑定 - 开放接口
+  initOpenApiEventListeners();
 
   // 事件绑定 - AI 配置
   const addOpenaiBtn = document.getElementById("addOpenaiBtn");
@@ -1378,6 +1546,7 @@ function init() {
   // 加载设置
   loadSettings();
   loadOpenaiList();
+  loadOpenApiSettings();
   loadCorsSettings();
 
   // 显示版本号

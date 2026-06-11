@@ -956,3 +956,140 @@ body {
   display: block;
 }
 
+/* 开放接口 */
+.openapi-panel {
+  max-width: 900px;
+}
+
+.openapi-warning {
+  border: 1px solid #ffe58f;
+  background: #fffbe6;
+}
+
+.openapi-warning p {
+  color: #8c6d1f;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.openapi-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 20px;
+}
+
+.openapi-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.openapi-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.openapi-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.openapi-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #e8e8e8;
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+
+.openapi-track::before {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.openapi-switch input:checked + .openapi-track {
+  background: #1890ff;
+}
+
+.openapi-switch input:checked + .openapi-track::before {
+  transform: translateX(20px);
+}
+
+.openapi-token-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f6f8fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+.openapi-token-box code {
+  flex: 1;
+  min-width: 0;
+  font-family: "SF Mono", "Menlo", "Monaco", "Cascadia Code", monospace;
+  font-size: 12px;
+  color: #333;
+  word-break: break-all;
+}
+
+.openapi-token-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff1f0;
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.openapi-token-status.ready {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.openapi-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.2s;
+}
+
+.openapi-textarea:focus {
+  outline: none;
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.openapi-code {
+  padding: 14px;
+  background: #1f1f1f;
+  color: #f0f0f0;
+  border-radius: 6px;
+  font-family: "SF Mono", "Menlo", "Monaco", "Cascadia Code", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

@@ -11,6 +11,7 @@
       <h2>设置</h2>
       <ul class="nav-menu">
         <li class="nav-item active" data-tab="openai">AI 配置</li>
+        <li class="nav-item" data-tab="openapi">开放接口</li>
         <li class="nav-item" data-tab="cors">CORS Unblock</li>
 
         <li class="nav-item" data-tab="other">Cookie 设置</li>
@@ -119,6 +120,52 @@
           <div id="openai-empty-state" class="relay-empty">
             <p>请在左侧选择或添加一个 AI 配置</p>
           </div>
+        </div>
+      </div>
+
+      <!-- 开放接口面板 -->
+      <div id="openapi-panel" class="panel openapi-panel">
+        <div class="panel-title">开放接口</div>
+
+        <div class="form-section openapi-warning">
+          <h3>安全提示</h3>
+          <p>
+            开放接口通过本机 localhost HTTP 服务接收调用，豆豆扩展轮询并执行命令。第一版仅支持打开指定网页，默认关闭。
+          </p>
+        </div>
+
+        <div class="form-section">
+          <h3>基础配置</h3>
+          <div class="openapi-row">
+            <div>
+              <div class="openapi-label">启用开放接口</div>
+              <div class="hint">启用前需要先生成 Token，并启动本地 HTTP 服务。</div>
+            </div>
+            <label class="openapi-switch">
+              <input type="checkbox" id="openapi-enabled" />
+              <span class="openapi-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Token</h3>
+          <div class="openapi-token-status" id="openapi-token-status">未生成 Token</div>
+          <div class="openapi-token-box" id="openapi-token-result" style="display: none">
+            <code id="openapi-token-value"></code>
+            <button class="btn" id="copy-openapi-token" type="button">复制</button>
+          </div>
+          <div class="hint">Token 只在生成后显示一次，请立即复制保存。</div>
+          <div style="display: flex; gap: 8px; margin-top: 12px">
+            <button class="btn btn-primary" id="generate-openapi-token" type="button">生成 Token</button>
+            <button class="btn btn-danger" id="clear-openapi-token" type="button">清除 Token</button>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>调用示例</h3>
+          <div class="hint" style="margin-bottom: 10px">先启动本地 HTTP 服务，外部程序即可通过 localhost URL 调用豆豆。</div>
+          <pre class="openapi-code" id="openapi-example"></pre>
         </div>
       </div>
 

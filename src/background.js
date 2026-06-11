@@ -51,6 +51,16 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "GET_NETWORK_CAPTURE_STATUS",
 ]);
 
+const DEFAULT_OPENAPI_CONFIG = {
+  enabled: false,
+};
+
+const OPENAPI_VERSION = 1;
+const OPENAPI_POLL_URL = "http://127.0.0.1:17878/next";
+const OPENAPI_POLL_INTERVAL = 1500;
+let openApiPollTimer = null;
+let openApiPolling = false;
+
 // 消息监听
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 不处理非豆豆的消息类型，交给 COSE 监听器处理
@@ -327,6 +337,141 @@ async function cleanupAllSelectors(tabId) {
     });
   } catch (err) {}
 }
+
+function openApiError(code, message) {
+  return { ok: false, error: { code, message } };
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashOpenApiToken(token) {
+  const data = new TextEncoder().encode(token);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return bytesToHex(new Uint8Array(hash));
+}
+
+async function loadOpenApiConfig() {
+  const [{ openapiConfig = {} }, { openapiSecrets = {} }] = await Promise.all([
+    chrome.storage.sync.get("openapiConfig"),
+    chrome.storage.local.get("openapiSecrets"),
+  ]);
+
+  return {
+    config: {
+      ...DEFAULT_OPENAPI_CONFIG,
+      ...openapiConfig,
+    },
+    secrets: openapiSecrets || {},
+  };
+}
+
+async function verifyOpenApiToken(request, secrets) {
+  const token = typeof request.token === "string" ? request.token : "";
+  if (!token || !secrets.tokenHash) return false;
+  return (await hashOpenApiToken(token)) === secrets.tokenHash;
+}
+
+function normalizeOpenApiUrl(url) {
+  if (typeof url !== "string" || !url.trim()) {
+    throw new Error("URL 不能为空");
+  }
+
+  const parsed = new URL(url.trim());
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("仅支持打开 http 或 https 链接");
+  }
+
+  return parsed.href;
+}
+
+async function dispatchOpenApiAction(action, payload = {}) {
+  switch (action) {
+    case "openUrl": {
+      const url = normalizeOpenApiUrl(payload.url);
+      const active = payload.active !== false;
+      const tab = await chrome.tabs.create({ url, active });
+      return { tabId: tab.id, url: tab.url || url };
+    }
+    default:
+      throw new Error("不支持的开放接口动作");
+  }
+}
+
+async function validateOpenApiRequest(request) {
+  if (request.version !== OPENAPI_VERSION) {
+    return { error: openApiError("UNSUPPORTED_VERSION", "开放接口版本不支持") };
+  }
+
+  const { config, secrets } = await loadOpenApiConfig();
+  if (!config.enabled) {
+    return { error: openApiError("OPENAPI_DISABLED", "开放接口未启用") };
+  }
+
+  if (!(await verifyOpenApiToken(request, secrets))) {
+    return { error: openApiError("TOKEN_INVALID", "Token 无效") };
+  }
+
+  if (request.action !== "openUrl") {
+    return { error: openApiError("ACTION_NOT_ALLOWED", "仅支持 openUrl 动作") };
+  }
+
+  return { config };
+}
+
+async function runOpenApiAction(request) {
+  try {
+    const data = await dispatchOpenApiAction(request.action, request.payload || {});
+    return { ok: true, data };
+  } catch (err) {
+    return openApiError("ACTION_FAILED", err.message || "开放接口执行失败");
+  }
+}
+
+async function handleOpenApiCommand(request) {
+  const validation = await validateOpenApiRequest(request);
+  if (validation.error) return validation.error;
+  return runOpenApiAction(request);
+}
+
+async function pollOpenApiCommands() {
+  if (openApiPolling) return;
+  openApiPolling = true;
+
+  try {
+    const { config } = await loadOpenApiConfig();
+    if (!config.enabled) return;
+
+    const response = await fetch(OPENAPI_POLL_URL, { cache: "no-store" });
+    if (!response.ok) return;
+
+    const commands = await response.json().catch(() => []);
+    const list = Array.isArray(commands) ? commands : commands?.commands;
+    if (!Array.isArray(list)) return;
+
+    for (const command of list) {
+      const result = await handleOpenApiCommand(command);
+      if (!result.ok) {
+        console.warn("[豆豆] 开放接口命令执行失败:", result.error);
+      }
+    }
+  } catch (_) {
+    // 本地 HTTP 服务未启动时静默忽略。
+  } finally {
+    openApiPolling = false;
+  }
+}
+
+function startOpenApiPolling() {
+  if (openApiPollTimer) return;
+  openApiPollTimer = setInterval(pollOpenApiCommands, OPENAPI_POLL_INTERVAL);
+  pollOpenApiCommands();
+}
+
+startOpenApiPolling();
 
 async function handleMessage(request, sender) {
   switch (request.type) {
