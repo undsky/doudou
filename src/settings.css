@@ -1030,40 +1030,6 @@ body {
   transform: translateX(20px);
 }
 
-.openapi-token-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #f6f8fa;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-}
-
-.openapi-token-box code {
-  flex: 1;
-  min-width: 0;
-  font-family: "SF Mono", "Menlo", "Monaco", "Cascadia Code", monospace;
-  font-size: 12px;
-  color: #333;
-  word-break: break-all;
-}
-
-.openapi-token-status {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #fff1f0;
-  color: #ff4d4f;
-  font-size: 12px;
-  margin-bottom: 12px;
-}
-
-.openapi-token-status.ready {
-  background: #f6ffed;
-  color: #52c41a;
-}
-
 .openapi-textarea {
   width: 100%;
   padding: 10px 12px;

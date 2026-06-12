@@ -53,10 +53,10 @@ const DOUDOU_MESSAGE_TYPES = new Set([
 
 const DEFAULT_OPENAPI_CONFIG = {
   enabled: false,
+  serverUrl: "http://127.0.0.1:17878",
 };
 
 const OPENAPI_VERSION = 1;
-const OPENAPI_POLL_URL = "http://127.0.0.1:17878/next";
 const OPENAPI_POLL_INTERVAL = 1500;
 let openApiPollTimer = null;
 let openApiPolling = false;
@@ -342,37 +342,13 @@ function openApiError(code, message) {
   return { ok: false, error: { code, message } };
 }
 
-function bytesToHex(bytes) {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function hashOpenApiToken(token) {
-  const data = new TextEncoder().encode(token);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return bytesToHex(new Uint8Array(hash));
-}
-
 async function loadOpenApiConfig() {
-  const [{ openapiConfig = {} }, { openapiSecrets = {} }] = await Promise.all([
-    chrome.storage.sync.get("openapiConfig"),
-    chrome.storage.local.get("openapiSecrets"),
-  ]);
+  const { openapiConfig = {} } = await chrome.storage.sync.get("openapiConfig");
 
   return {
-    config: {
-      ...DEFAULT_OPENAPI_CONFIG,
-      ...openapiConfig,
-    },
-    secrets: openapiSecrets || {},
+    ...DEFAULT_OPENAPI_CONFIG,
+    ...openapiConfig,
   };
-}
-
-async function verifyOpenApiToken(request, secrets) {
-  const token = typeof request.token === "string" ? request.token : "";
-  if (!token || !secrets.tokenHash) return false;
-  return (await hashOpenApiToken(token)) === secrets.tokenHash;
 }
 
 function normalizeOpenApiUrl(url) {
@@ -386,6 +362,17 @@ function normalizeOpenApiUrl(url) {
   }
 
   return parsed.href;
+}
+
+function normalizeOpenApiServerUrl(url) {
+  const parsed = new URL(url || DEFAULT_OPENAPI_CONFIG.serverUrl);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("开放接口服务地址仅支持 http 或 https");
+  }
+  parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+  parsed.search = "";
+  parsed.hash = "";
+  return parsed.href.replace(/\/+$/, "");
 }
 
 async function dispatchOpenApiAction(action, payload = {}) {
@@ -406,13 +393,9 @@ async function validateOpenApiRequest(request) {
     return { error: openApiError("UNSUPPORTED_VERSION", "开放接口版本不支持") };
   }
 
-  const { config, secrets } = await loadOpenApiConfig();
+  const config = await loadOpenApiConfig();
   if (!config.enabled) {
     return { error: openApiError("OPENAPI_DISABLED", "开放接口未启用") };
-  }
-
-  if (!(await verifyOpenApiToken(request, secrets))) {
-    return { error: openApiError("TOKEN_INVALID", "Token 无效") };
   }
 
   if (request.action !== "openUrl") {
@@ -442,10 +425,11 @@ async function pollOpenApiCommands() {
   openApiPolling = true;
 
   try {
-    const { config } = await loadOpenApiConfig();
+    const config = await loadOpenApiConfig();
     if (!config.enabled) return;
 
-    const response = await fetch(OPENAPI_POLL_URL, { cache: "no-store" });
+    const pollUrl = `${normalizeOpenApiServerUrl(config.serverUrl)}/next`;
+    const response = await fetch(pollUrl, { cache: "no-store" });
     if (!response.ok) return;
 
     const commands = await response.json().catch(() => []);
@@ -471,7 +455,35 @@ function startOpenApiPolling() {
   pollOpenApiCommands();
 }
 
-startOpenApiPolling();
+function stopOpenApiPolling() {
+  if (!openApiPollTimer) return;
+  clearInterval(openApiPollTimer);
+  openApiPollTimer = null;
+}
+
+async function syncOpenApiPolling() {
+  try {
+    const config = await loadOpenApiConfig();
+    if (config.enabled) {
+      startOpenApiPolling();
+    } else {
+      stopOpenApiPolling();
+    }
+  } catch (_) {
+    stopOpenApiPolling();
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "sync" || !changes.openapiConfig) return;
+  if (changes.openapiConfig.newValue?.enabled) {
+    startOpenApiPolling();
+  } else {
+    stopOpenApiPolling();
+  }
+});
+
+syncOpenApiPolling();
 
 async function handleMessage(request, sender) {
   switch (request.type) {

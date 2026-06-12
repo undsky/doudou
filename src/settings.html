@@ -127,56 +127,46 @@
       <div id="openapi-panel" class="panel openapi-panel">
         <div class="panel-title">开放接口</div>
 
-        <div class="form-section openapi-warning">
-          <h3>安全提示</h3>
-          <p>
-            开放接口通过本机 localhost HTTP 服务接收调用，豆豆扩展轮询并执行命令。第一版仅支持打开指定网页，默认关闭。
-          </p>
-        </div>
-
         <div class="form-section">
-          <h3>基础配置</h3>
           <div class="openapi-row">
             <div>
               <div class="openapi-label">启用开放接口</div>
-              <div class="hint">启用前需要先生成 Token，并启动本地 HTTP 服务。</div>
+              <div class="hint">启用前请先启动本地服务</div>
             </div>
             <label class="openapi-switch">
               <input type="checkbox" id="openapi-enabled" />
               <span class="openapi-track"></span>
             </label>
           </div>
-        </div>
-
-        <div class="form-section">
-          <h3>Token</h3>
-          <div class="openapi-token-status" id="openapi-token-status">未生成 Token</div>
-          <div class="openapi-token-box" id="openapi-token-result" style="display: none">
-            <code id="openapi-token-value"></code>
-            <button class="btn" id="copy-openapi-token" type="button">复制</button>
+          <div class="form-group">
+            <label>本地 HTTP 服务地址</label>
+            <input
+              type="url"
+              id="openapi-server-url"
+              placeholder="http://127.0.0.1:17878"
+            />
+            <div class="hint">
+              豆豆会轮询该地址的 /next 接口，外部程序调用同地址的 /open 接口。
+            </div>
           </div>
-          <div class="hint">Token 只在生成后显示一次，请立即复制保存。</div>
-          <div style="display: flex; gap: 8px; margin-top: 12px">
-            <button class="btn btn-primary" id="generate-openapi-token" type="button">生成 Token</button>
-            <button class="btn btn-danger" id="clear-openapi-token" type="button">清除 Token</button>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h3>调用示例</h3>
-          <div class="hint" style="margin-bottom: 10px">先启动本地 HTTP 服务，外部程序即可通过 localhost URL 调用豆豆。</div>
-          <pre class="openapi-code" id="openapi-example"></pre>
         </div>
       </div>
 
       <!-- CORS 配置面板 -->
       <div id="cors-panel" class="panel cors-panel">
-        <header class="cors-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <header
+          class="cors-header"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          "
+        >
           <div>
             <h1>CORS Unblock</h1>
-            <p style="margin: 0;">解除浏览器跨域限制</p>
+            <p style="margin: 0">解除浏览器跨域限制</p>
           </div>
-          <div class="cors-config-actions" style="margin-top: 0;">
+          <div class="cors-config-actions" style="margin-top: 0">
             <button
               class="btn"
               id="import-cors-config"
@@ -323,7 +313,7 @@
             <button
               class="btn"
               id="showCrawlerGuideBtn"
-              style="font-size: 12px; padding: 4px 8px; border-radius: 4px;"
+              style="font-size: 12px; padding: 4px 8px; border-radius: 4px"
             >
               使用说明
             </button>
@@ -492,50 +482,188 @@
     <div class="toast" id="toast"></div>
 
     <!-- Guide Modal -->
-    <div id="guide-modal" class="modal-overlay" style="display: none;">
-      <div class="modal" style="width: 600px; max-width: 90vw;">
-        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; position: sticky; top: -24px; background: #fff; z-index: 10; margin: -24px -24px 16px -24px; padding: 24px 24px 16px 24px; border-bottom: 1px solid #eee;">
-            <h3 style="margin: 0; font-size: 16px;">爬虫规则使用说明</h3>
-            <button id="btn-close-guide" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 0; line-height: 1;">&times;</button>
+    <div id="guide-modal" class="modal-overlay" style="display: none">
+      <div class="modal" style="width: 600px; max-width: 90vw">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              position: sticky;
+              top: -24px;
+              background: #fff;
+              z-index: 10;
+              margin: -24px -24px 16px -24px;
+              padding: 24px 24px 16px 24px;
+              border-bottom: 1px solid #eee;
+            "
+          >
+            <h3 style="margin: 0; font-size: 16px">爬虫规则使用说明</h3>
+            <button
+              id="btn-close-guide"
+              style="
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                color: #666;
+                padding: 0;
+                line-height: 1;
+              "
+            >
+              &times;
+            </button>
           </div>
-          <div class="guide-content" style="font-size: 14px; line-height: 1.6; color: #333;">
-            <h4 style="margin-top: 0;">规则配置</h4>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <div
+            class="guide-content"
+            style="font-size: 14px; line-height: 1.6; color: #333"
+          >
+            <h4 style="margin-top: 0">规则配置</h4>
+            <table
+              style="
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 16px;
+              "
+            >
               <thead>
                 <tr>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f9f9f9;">选项</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f9f9f9;">说明</th>
+                  <th
+                    style="
+                      border: 1px solid #ddd;
+                      padding: 8px;
+                      text-align: left;
+                      background-color: #f9f9f9;
+                    "
+                  >
+                    选项
+                  </th>
+                  <th
+                    style="
+                      border: 1px solid #ddd;
+                      padding: 8px;
+                      text-align: left;
+                      background-color: #f9f9f9;
+                    "
+                  >
+                    说明
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">爬取链接</td><td style="border: 1px solid #ddd; padding: 8px;">目标页面 URL</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">爬取选择器</td><td style="border: 1px solid #ddd; padding: 8px;">用于匹配目标元素的 CSS 选择器</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">链接选择器</td><td style="border: 1px solid #ddd; padding: 8px;">用于匹配链接的 CSS 选择器</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">日期选择器</td><td style="border: 1px solid #ddd; padding: 8px;">用于匹配日期的 CSS 选择器</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">内容选择器</td><td style="border: 1px solid #ddd; padding: 8px;">用于匹配内容的 CSS 选择器</td></tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">爬取链接</td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    目标页面 URL
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    爬取选择器
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    用于匹配目标元素的 CSS 选择器
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    链接选择器
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    用于匹配链接的 CSS 选择器
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    日期选择器
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    用于匹配日期的 CSS 选择器
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    内容选择器
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    用于匹配内容的 CSS 选择器
+                  </td>
+                </tr>
               </tbody>
             </table>
 
             <h4>特殊设置说明</h4>
-            <ul style="padding-left: 20px; margin-bottom: 16px;">
-              <li style="margin-bottom: 8px;"><strong>仅配置内容选择器</strong>：当只填写「内容选择器」而不填「爬取选择器」时，将跳过列表采集阶段，直接采集当前页面的内容。</li>
-              <li style="margin-bottom: 8px;"><strong>日期选择器属性提取</strong>：日期选择器支持 <code>selector$attr</code> 格式，<code>$</code> 后为要读取的 HTML 属性名。例如 <code>time.date$datetime</code> 表示选取 <code>time.date</code> 元素并读取其 <code>datetime</code> 属性值作为日期。</li>
-              <li style="margin-bottom: 8px;"><strong>内容选择器多选</strong>：内容选择器支持逗号分隔的多个选择器，采集时会依次提取各选择器匹配的内容并合并。例如 <code>h1.title, div.content</code> 会分别提取标题和正文。</li>
+            <ul style="padding-left: 20px; margin-bottom: 16px">
+              <li style="margin-bottom: 8px">
+                <strong>仅配置内容选择器</strong
+                >：当只填写「内容选择器」而不填「爬取选择器」时，将跳过列表采集阶段，直接采集当前页面的内容。
+              </li>
+              <li style="margin-bottom: 8px">
+                <strong>日期选择器属性提取</strong>：日期选择器支持
+                <code>selector$attr</code> 格式，<code>$</code> 后为要读取的
+                HTML 属性名。例如 <code>time.date$datetime</code> 表示选取
+                <code>time.date</code> 元素并读取其
+                <code>datetime</code> 属性值作为日期。
+              </li>
+              <li style="margin-bottom: 8px">
+                <strong>内容选择器多选</strong
+                >：内容选择器支持逗号分隔的多个选择器，采集时会依次提取各选择器匹配的内容并合并。例如
+                <code>h1.title, div.content</code> 会分别提取标题和正文。
+              </li>
             </ul>
 
             <h4>爬取模式</h4>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+            <table
+              style="
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 16px;
+              "
+            >
               <thead>
                 <tr>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f9f9f9;">模式</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f9f9f9;">说明</th>
+                  <th
+                    style="
+                      border: 1px solid #ddd;
+                      padding: 8px;
+                      text-align: left;
+                      background-color: #f9f9f9;
+                    "
+                  >
+                    模式
+                  </th>
+                  <th
+                    style="
+                      border: 1px solid #ddd;
+                      padding: 8px;
+                      text-align: left;
+                      background-color: #f9f9f9;
+                    "
+                  >
+                    说明
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">仅爬取</td><td style="border: 1px solid #ddd; padding: 8px;">仅爬取当前页面内容</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">滚动</td><td style="border: 1px solid #ddd; padding: 8px;">自动滚动页面加载更多内容，可设置滚动次数和距离</td></tr>
-                <tr><td style="border: 1px solid #ddd; padding: 8px;">分页</td><td style="border: 1px solid #ddd; padding: 8px;">自动翻页爬取，可设置分页选择器和分页次数</td></tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">仅爬取</td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    仅爬取当前页面内容
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">滚动</td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    自动滚动页面加载更多内容，可设置滚动次数和距离
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px">分页</td>
+                  <td style="border: 1px solid #ddd; padding: 8px">
+                    自动翻页爬取，可设置分页选择器和分页次数
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

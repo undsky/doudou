@@ -1235,71 +1235,37 @@ async function testOpenaiItem() {
 
 const DEFAULT_OPENAPI_CONFIG = {
   enabled: false,
+  serverUrl: "http://127.0.0.1:17878",
 };
 
 let currentOpenApiConfig = { ...DEFAULT_OPENAPI_CONFIG };
-let currentOpenApiSecrets = {};
 
-function bytesToHex(bytes) {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function hashOpenApiToken(token) {
-  const data = new TextEncoder().encode(token);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return bytesToHex(new Uint8Array(hash));
-}
-
-function generateOpenApiTokenValue() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return bytesToHex(bytes);
-}
-
-function getOpenApiExample() {
-  return `启动本地 HTTP 服务：
-node tools/openapi-server.cjs
-
-HTTP URL 调用：
-http://127.0.0.1:17878/open?token=这里填写生成的Token&url=${encodeURIComponent("https://www.undsky.com/doudou")}&active=true
-
-查看队列状态：
-http://127.0.0.1:17878/status`;
+function normalizeOpenApiServerUrl(url) {
+  const parsed = new URL((url || DEFAULT_OPENAPI_CONFIG.serverUrl).trim());
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("本地 HTTP 服务地址仅支持 http 或 https");
+  }
+  parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+  parsed.search = "";
+  parsed.hash = "";
+  return parsed.href.replace(/\/+$/, "");
 }
 
 function applyOpenApiSettingsToUI() {
   const enabledEl = document.getElementById("openapi-enabled");
-  const tokenStatusEl = document.getElementById("openapi-token-status");
-  const tokenResultEl = document.getElementById("openapi-token-result");
-  const tokenValueEl = document.getElementById("openapi-token-value");
-  const exampleEl = document.getElementById("openapi-example");
+  const serverUrlEl = document.getElementById("openapi-server-url");
 
   if (enabledEl) enabledEl.checked = !!currentOpenApiConfig.enabled;
-  if (exampleEl) exampleEl.textContent = getOpenApiExample();
-
-  if (tokenStatusEl) {
-    tokenStatusEl.textContent = currentOpenApiSecrets.tokenHash
-      ? "已生成 Token"
-      : "未生成 Token";
-    tokenStatusEl.classList.toggle("ready", !!currentOpenApiSecrets.tokenHash);
-  }
-  if (tokenResultEl) tokenResultEl.style.display = "none";
-  if (tokenValueEl) tokenValueEl.textContent = "";
+  if (serverUrlEl) serverUrlEl.value = currentOpenApiConfig.serverUrl || DEFAULT_OPENAPI_CONFIG.serverUrl;
 }
 
 async function loadOpenApiSettings() {
   try {
-    const [{ openapiConfig = {} }, { openapiSecrets = {} }] = await Promise.all([
-      chrome.storage.sync.get("openapiConfig"),
-      chrome.storage.local.get("openapiSecrets"),
-    ]);
+    const { openapiConfig = {} } = await chrome.storage.sync.get("openapiConfig");
     currentOpenApiConfig = {
       ...DEFAULT_OPENAPI_CONFIG,
       ...openapiConfig,
     };
-    currentOpenApiSecrets = openapiSecrets || {};
     applyOpenApiSettingsToUI();
   } catch (error) {
     console.error("加载开放接口配置失败:", error);
@@ -1310,15 +1276,16 @@ async function loadOpenApiSettings() {
 async function saveOpenApiSettings(showSuccess = true) {
   try {
     const enabledEl = document.getElementById("openapi-enabled");
+    const serverUrlEl = document.getElementById("openapi-server-url");
     const enabled = !!enabledEl?.checked;
+    const serverUrl = normalizeOpenApiServerUrl(
+      serverUrlEl?.value || DEFAULT_OPENAPI_CONFIG.serverUrl,
+    );
 
-    if (enabled && !currentOpenApiSecrets.tokenHash) {
-      if (enabledEl) enabledEl.checked = false;
-      throw new Error("请先生成 Token");
-    }
     currentOpenApiConfig = {
       ...currentOpenApiConfig,
       enabled,
+      serverUrl,
     };
     await chrome.storage.sync.set({ openapiConfig: currentOpenApiConfig });
     applyOpenApiSettingsToUI();
@@ -1330,68 +1297,14 @@ async function saveOpenApiSettings(showSuccess = true) {
   }
 }
 
-async function generateOpenApiToken() {
-  try {
-    const token = generateOpenApiTokenValue();
-    currentOpenApiSecrets = {
-      tokenHash: await hashOpenApiToken(token),
-      tokenCreatedAt: Date.now(),
-    };
-    await chrome.storage.local.set({ openapiSecrets: currentOpenApiSecrets });
-
-    const tokenResultEl = document.getElementById("openapi-token-result");
-    const tokenValueEl = document.getElementById("openapi-token-value");
-    if (tokenValueEl) tokenValueEl.textContent = token;
-    if (tokenResultEl) tokenResultEl.style.display = "flex";
-    applyOpenApiSettingsToUI();
-    if (tokenValueEl) tokenValueEl.textContent = token;
-    if (tokenResultEl) tokenResultEl.style.display = "flex";
-    showToast("✓ Token 已生成，请立即复制保存", "success");
-  } catch (error) {
-    console.error("生成开放接口 Token 失败:", error);
-    showToast("生成 Token 失败", "error");
-  }
-}
-
-async function clearOpenApiToken() {
-  if (!(await showConfirm("清除 Token 后，现有外部程序将无法继续调用。确定清除吗？"))) {
-    return;
-  }
-
-  currentOpenApiSecrets = {};
-  currentOpenApiConfig = { ...currentOpenApiConfig, enabled: false };
-  await Promise.all([
-    chrome.storage.local.set({ openapiSecrets: currentOpenApiSecrets }),
-    chrome.storage.sync.set({ openapiConfig: currentOpenApiConfig }),
-  ]);
-  applyOpenApiSettingsToUI();
-  showToast("Token 已清除", "success");
-}
-
-async function copyText(text, successMessage) {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast(successMessage, "success");
-  } catch (error) {
-    console.error("复制失败:", error);
-    showToast("复制失败", "error");
-  }
-}
 
 function initOpenApiEventListeners() {
   document
     .getElementById("openapi-enabled")
     ?.addEventListener("change", () => saveOpenApiSettings());
   document
-    .getElementById("generate-openapi-token")
-    ?.addEventListener("click", generateOpenApiToken);
-  document
-    .getElementById("clear-openapi-token")
-    ?.addEventListener("click", clearOpenApiToken);
-  document.getElementById("copy-openapi-token")?.addEventListener("click", () => {
-    const token = document.getElementById("openapi-token-value")?.textContent || "";
-    if (token) copyText(token, "✓ Token 已复制");
-  });
+    .getElementById("openapi-server-url")
+    ?.addEventListener("change", () => saveOpenApiSettings());
 }
 
 /**
