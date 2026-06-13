@@ -152,7 +152,7 @@
   }
 
   // 拦截XHR和Fetch在content script中可能无法拦截主页面的请求
-  // 因此我们通过注入 douyin-inject.js 到 main world 来处理 API 数据
+  // 因此我们通过注入 inject.js 到 main world 来处理 API 数据
   
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'DOUDOU_DY_NOTE_DATA') {
@@ -514,7 +514,7 @@
     
     // 注入 API 拦截脚本到 main world
     const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('src/douyin-inject.js');
+    script.src = chrome.runtime.getURL('src/douyin/inject.js');
     (document.head || document.documentElement).appendChild(script);
 
     // 监听来自background或popup的消息

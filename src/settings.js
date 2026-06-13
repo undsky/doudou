@@ -79,18 +79,6 @@ function switchTab(tabId) {
   if (tabId === "openai") {
     loadOpenaiList();
   }
-  // 如果切换到开放接口，刷新状态
-  if (tabId === "openapi") {
-    loadOpenApiSettings();
-  }
-  // 如果切换到 API，刷新状态
-  if (tabId === "api") {
-    checkApiStatus();
-  }
-  // 如果切换到 中转站
-  if (tabId === "relay") {
-    loadRelayConfigs();
-  }
 }
 
 /**
@@ -1233,80 +1221,6 @@ async function testOpenaiItem() {
   }
 }
 
-const DEFAULT_OPENAPI_CONFIG = {
-  enabled: false,
-  serverUrl: "http://127.0.0.1:17878",
-};
-
-let currentOpenApiConfig = { ...DEFAULT_OPENAPI_CONFIG };
-
-function normalizeOpenApiServerUrl(url) {
-  const parsed = new URL((url || DEFAULT_OPENAPI_CONFIG.serverUrl).trim());
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("本地 HTTP 服务地址仅支持 http 或 https");
-  }
-  parsed.pathname = parsed.pathname.replace(/\/+$/, "");
-  parsed.search = "";
-  parsed.hash = "";
-  return parsed.href.replace(/\/+$/, "");
-}
-
-function applyOpenApiSettingsToUI() {
-  const enabledEl = document.getElementById("openapi-enabled");
-  const serverUrlEl = document.getElementById("openapi-server-url");
-
-  if (enabledEl) enabledEl.checked = !!currentOpenApiConfig.enabled;
-  if (serverUrlEl) serverUrlEl.value = currentOpenApiConfig.serverUrl || DEFAULT_OPENAPI_CONFIG.serverUrl;
-}
-
-async function loadOpenApiSettings() {
-  try {
-    const { openapiConfig = {} } = await chrome.storage.sync.get("openapiConfig");
-    currentOpenApiConfig = {
-      ...DEFAULT_OPENAPI_CONFIG,
-      ...openapiConfig,
-    };
-    applyOpenApiSettingsToUI();
-  } catch (error) {
-    console.error("加载开放接口配置失败:", error);
-    showToast("加载开放接口配置失败", "error");
-  }
-}
-
-async function saveOpenApiSettings(showSuccess = true) {
-  try {
-    const enabledEl = document.getElementById("openapi-enabled");
-    const serverUrlEl = document.getElementById("openapi-server-url");
-    const enabled = !!enabledEl?.checked;
-    const serverUrl = normalizeOpenApiServerUrl(
-      serverUrlEl?.value || DEFAULT_OPENAPI_CONFIG.serverUrl,
-    );
-
-    currentOpenApiConfig = {
-      ...currentOpenApiConfig,
-      enabled,
-      serverUrl,
-    };
-    await chrome.storage.sync.set({ openapiConfig: currentOpenApiConfig });
-    applyOpenApiSettingsToUI();
-    if (showSuccess) showToast("✓ 设置已保存", "success");
-  } catch (error) {
-    console.error("保存开放接口配置失败:", error);
-    showToast(error.message || "保存开放接口配置失败", "error");
-    await loadOpenApiSettings();
-  }
-}
-
-
-function initOpenApiEventListeners() {
-  document
-    .getElementById("openapi-enabled")
-    ?.addEventListener("change", () => saveOpenApiSettings());
-  document
-    .getElementById("openapi-server-url")
-    ?.addEventListener("change", () => saveOpenApiSettings());
-}
-
 /**
  * 初始化
  */
@@ -1325,9 +1239,6 @@ function init() {
 
   // 自动保存 - CORS 配置
   initCorsEventListeners();
-
-  // 事件绑定 - 开放接口
-  initOpenApiEventListeners();
 
   // 事件绑定 - AI 配置
   const addOpenaiBtn = document.getElementById("addOpenaiBtn");
@@ -1459,7 +1370,6 @@ function init() {
   // 加载设置
   loadSettings();
   loadOpenaiList();
-  loadOpenApiSettings();
   loadCorsSettings();
 
   // 显示版本号

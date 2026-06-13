@@ -510,11 +510,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function ensureDouyinDownloaderInjected(tabId) {
     await chrome.scripting.insertCSS({
       target: { tabId },
-      files: ["src/douyin-downloader.css"],
+      files: ["src/douyin/downloader.css"],
     });
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["src/douyin-downloader.js"],
+      files: ["src/douyin/downloader.js"],
     });
   }
 
@@ -665,117 +665,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 网络抓包
-  const networkCaptureBtn = document.getElementById("network-capture");
-  if (networkCaptureBtn) {
-    const captureStatusEl = document.getElementById("capture-status");
-    const captureLabelEl = networkCaptureBtn.querySelector(".label");
-    const captureDescEl = networkCaptureBtn.querySelector(".desc");
-
-    // 初始化状态
-    chrome.runtime.sendMessage(
-      { type: "GET_NETWORK_CAPTURE_STATUS" },
-      (res) => {
-        void chrome.runtime.lastError;
-        if (res?.capturing) {
-          captureStatusEl?.classList.add("active");
-          captureLabelEl.textContent = "停止抓包";
-          captureDescEl.textContent = `已抓取 ${res.count || 0} 条请求，点击停止`;
-        }
-      },
-    );
-
-    networkCaptureBtn.addEventListener("click", async () => {
-      try {
-        // 先检查当前状态
-        const statusRes = await chrome.runtime.sendMessage({
-          type: "GET_NETWORK_CAPTURE_STATUS",
-        });
-
-        if (statusRes?.capturing) {
-          // 正在抓包 → 停止并下载
-          captureLabelEl.textContent = "导出中...";
-          networkCaptureBtn.style.pointerEvents = "none";
-          networkCaptureBtn.style.opacity = "0.6";
-
-          const result = await chrome.runtime.sendMessage({
-            type: "STOP_NETWORK_CAPTURE",
-          });
-
-          if (!result?.success) {
-            throw new Error(result?.error || "停止抓包失败");
-          }
-
-          const capturedData = result.data || [];
-          if (capturedData.length === 0) {
-            showToast("未抓取到任何请求", "info");
-          } else {
-            // 生成并下载 JSON 文件
-            const now = new Date();
-            const dateStr = `${now.getFullYear()}${String(
-              now.getMonth() + 1,
-            ).padStart(2, "0")}${String(now.getDate()).padStart(
-              2,
-              "0",
-            )}_${String(now.getHours()).padStart(2, "0")}${String(
-              now.getMinutes(),
-            ).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-            const filename = `network_capture_${dateStr}.json`;
-
-            const blob = new Blob([JSON.stringify(capturedData, null, 2)], {
-              type: "application/json",
-            });
-            const downloadUrl = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = downloadUrl;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(downloadUrl);
-
-            showToast(`已导出 ${capturedData.length} 条请求数据`, "success");
-          }
-
-          captureStatusEl?.classList.remove("active");
-          captureLabelEl.textContent = "网络抓包";
-          captureDescEl.textContent = "抓取浏览器请求详情";
-          networkCaptureBtn.style.pointerEvents = "auto";
-          networkCaptureBtn.style.opacity = "1";
-        } else {
-          // 未在抓包 → 启动抓包
-          const [tab] = await chrome.tabs.query({
-            active: true,
-            currentWindow: true,
-          });
-
-          const url = tab?.url || "";
-          if (!url.startsWith("http")) {
-            showToast("无法在此页面使用，请在普通网页上使用", "error");
-            return;
-          }
-
-          const result = await chrome.runtime.sendMessage({
-            type: "START_NETWORK_CAPTURE",
-            tabId: tab.id,
-          });
-
-          if (!result?.success) {
-            throw new Error(result?.error || "启动抓包失败");
-          }
-
-          captureStatusEl?.classList.add("active");
-          captureLabelEl.textContent = "停止抓包";
-          captureDescEl.textContent = "点击停止并下载数据";
-          showToast("抓包已启动，浏览页面后再次点击停止", "success");
-        }
-      } catch (error) {
-        showToast("抓包操作失败: " + error.message, "error");
-        captureLabelEl.textContent = "网络抓包";
-        captureDescEl.textContent = "抓取浏览器请求详情";
-        networkCaptureBtn.style.pointerEvents = "auto";
-        networkCaptureBtn.style.opacity = "1";
-      }
-    });
-  }
 });
 
 /**

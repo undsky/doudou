@@ -429,33 +429,6 @@ h2 {
   box-shadow: 0 0 4px rgba(82, 196, 26, 0.4);
 }
 
-/* 网络抓包状态指示 */
-.capture-status {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #d9d9d9;
-  margin-left: auto;
-  flex-shrink: 0;
-  transition: background-color 0.2s ease;
-}
-
-.capture-status.active {
-  background: #f5222d;
-  box-shadow: 0 0 4px rgba(245, 34, 45, 0.4);
-  animation: capture-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes capture-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
 /* 截图子菜单 */
 .screenshot-submenu {
   display: none;

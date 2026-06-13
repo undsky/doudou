@@ -41,8 +41,8 @@
     },
     {
       "matches": ["https://www.douyin.com/*", "https://*.douyin.com/*"],
-      "js": ["src/douyin-downloader.js"],
-      "css": ["src/douyin-downloader.css"],
+      "js": ["src/douyin/downloader.js"],
+      "css": ["src/douyin/downloader.css"],
       "run_at": "document_start"
     }
   ],
@@ -65,7 +65,7 @@
     },
     {
       "resources": [
-        "src/douyin-inject.js"
+        "src/douyin/inject.js"
       ],
       "matches": [
         "https://www.douyin.com/*",
