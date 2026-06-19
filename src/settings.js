@@ -711,6 +711,7 @@ const DEFAULT_OPENAI_CONFIG = {
 let openaiConfigs = [];
 let currentOpenaiId = null;
 let openaiDragItem = null;
+let currentGetModelsTaskId = 0;
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1042,6 +1043,16 @@ function selectOpenai(id) {
   // 更新默认标识
   const badge = document.getElementById("openai-detail-badge");
   if (badge) badge.style.display = index === 0 ? "inline-block" : "none";
+
+  // 重置获取模型状态，并中断之前的测活任务
+  currentGetModelsTaskId++;
+  const statusEl = document.getElementById("openaiGetModelsStatus");
+  const modelsListEl = document.getElementById("openaiModelsList");
+  if (statusEl) statusEl.textContent = "";
+  if (modelsListEl) {
+    modelsListEl.style.display = "none";
+    modelsListEl.innerHTML = "";
+  }
 }
 
 /**
@@ -1222,6 +1233,190 @@ async function testOpenaiItem() {
 }
 
 /**
+ * 获取当前选中的 AI 配置的模型列表
+ */
+async function getOpenaiModels() {
+  if (!currentOpenaiId) return;
+
+  const apiKey = document.getElementById("openaiApiKey").value.trim();
+  const baseUrl = document.getElementById("openaiBaseUrl").value.trim();
+
+  if (!baseUrl) {
+    showToast("请先填写 API Base URL", "error");
+    return;
+  }
+
+  const getModelsBtn = document.getElementById("openaiGetModelsBtn");
+  const statusEl = document.getElementById("openaiGetModelsStatus");
+  const modelsListEl = document.getElementById("openaiModelsList");
+
+  if (!getModelsBtn || !statusEl || !modelsListEl) return;
+
+  // 递增任务 ID，生成当前调用的唯一标志
+  currentGetModelsTaskId++;
+  const taskId = currentGetModelsTaskId;
+
+  const originalText = getModelsBtn.textContent;
+  getModelsBtn.textContent = "获取中...";
+  getModelsBtn.disabled = true;
+  statusEl.textContent = "";
+  modelsListEl.style.display = "none";
+  modelsListEl.innerHTML = "";
+
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+
+    const cleanedBaseUrl = baseUrl.replace(/\/+$/, "");
+    const response = await fetch(`${cleanedBaseUrl}/models`, {
+      method: "GET",
+      headers: headers,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`HTTP ${response.status}: ${errText}`);
+    }
+
+    const result = await response.json();
+    const models = result.data || [];
+    if (!Array.isArray(models) || models.length === 0) {
+      statusEl.textContent = "未获取到有效的模型列表";
+      return;
+    }
+
+    modelsListEl.style.display = "flex";
+    const badgeElements = [];
+
+    models.forEach((m) => {
+      const modelId = m.id;
+      if (!modelId) return;
+
+      const badge = document.createElement("span");
+      badge.className = "model-badge";
+      badge.textContent = modelId;
+      badge.dataset.status = "pending"; // 初始 pending 状态
+      badge.style.cssText = "cursor: pointer; display: inline-block; padding: 4px 8px; background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; transition: all 0.2s;";
+      
+      badge.addEventListener("mouseenter", () => {
+        badge.style.background = "#e6f7ff";
+        badge.style.borderColor = "#91d5ff";
+        badge.style.color = "#1890ff";
+      });
+      badge.addEventListener("mouseleave", () => {
+        if (badge.dataset.status === "success") {
+          badge.style.background = "#f6ffed";
+          badge.style.borderColor = "#b7eb8f";
+          badge.style.color = "#389e0d";
+        } else if (badge.dataset.status === "error") {
+          badge.style.background = "#fff1f0";
+          badge.style.borderColor = "#ffccc7";
+          badge.style.color = "#cf1322";
+        } else if (badge.dataset.status === "testing") {
+          badge.style.background = "#fffbe6";
+          badge.style.borderColor = "#ffe58f";
+          badge.style.color = "";
+        } else {
+          badge.style.background = "#f5f5f5";
+          badge.style.borderColor = "#d9d9d9";
+          badge.style.color = "";
+        }
+      });
+
+      badge.addEventListener("click", () => {
+        const modelInput = document.getElementById("openaiModel");
+        if (modelInput) {
+          modelInput.value = modelId;
+          saveOpenaiBasic(false);
+          showToast(`已选择模型: ${modelId}`, "success");
+        }
+      });
+
+      modelsListEl.appendChild(badge);
+      badgeElements.push(badge);
+    });
+
+    // 开始顺序测活，不要并发
+    statusEl.textContent = "开始进行模型测活...";
+    
+    for (let i = 0; i < models.length; i++) {
+      // 检查当前任务是否已被中断（即用户点击了新的获取或切换了配置）
+      if (currentGetModelsTaskId !== taskId) {
+        break;
+      }
+
+      const m = models[i];
+      const modelId = m.id;
+      if (!modelId) continue;
+
+      const badge = badgeElements[i];
+      if (!badge) continue;
+
+      badge.dataset.status = "testing";
+      badge.style.background = "#fffbe6";
+      badge.style.borderColor = "#ffe58f";
+      badge.style.color = "";
+
+      statusEl.textContent = `正在测活 (${i + 1}/${models.length}): ${modelId}`;
+
+      try {
+        const client = new OpenAIClient({
+          apiKey,
+          baseURL: baseUrl,
+          model: modelId,
+          maxRetries: 0,
+          timeout: 10000, // 超时 10 秒
+        });
+
+        await client.chat("Hi", { max_tokens: 5 });
+
+        // 再次检查任务状态
+        if (currentGetModelsTaskId !== taskId) {
+          break;
+        }
+
+        badge.dataset.status = "success";
+        badge.style.background = "#f6ffed";
+        badge.style.borderColor = "#b7eb8f";
+        badge.style.color = "#389e0d";
+      } catch (error) {
+        // 再次检查任务状态
+        if (currentGetModelsTaskId !== taskId) {
+          break;
+        }
+
+        badge.dataset.status = "error";
+        badge.style.background = "#fff1f0";
+        badge.style.borderColor = "#ffccc7";
+        badge.style.color = "#cf1322";
+        badge.title = `测活失败: ${error.message}`;
+      }
+    }
+
+    if (currentGetModelsTaskId === taskId) {
+      const successCount = badgeElements.filter(b => b.dataset.status === "success").length;
+      statusEl.textContent = `共获取 ${models.length} 个模型，其中 ${successCount} 个测试可用`;
+    }
+
+  } catch (error) {
+    // 再次检查任务状态，防覆盖
+    if (currentGetModelsTaskId === taskId) {
+      statusEl.textContent = `获取失败: ${error.message}`;
+      showToast(`获取模型失败: ${error.message}`, "error");
+    }
+  } finally {
+    if (currentGetModelsTaskId === taskId) {
+      getModelsBtn.textContent = originalText;
+      getModelsBtn.disabled = false;
+    }
+  }
+}
+
+/**
  * 初始化
  */
 function init() {
@@ -1271,6 +1466,9 @@ function init() {
 
   const openaiTestBtn = document.getElementById("openaiTestBtn");
   if (openaiTestBtn) openaiTestBtn.addEventListener("click", testOpenaiItem);
+
+  const openaiGetModelsBtn = document.getElementById("openaiGetModelsBtn");
+  if (openaiGetModelsBtn) openaiGetModelsBtn.addEventListener("click", getOpenaiModels);
 
   const openaiDeleteBtn = document.getElementById("openaiDeleteBtn");
   if (openaiDeleteBtn)
