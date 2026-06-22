@@ -245,7 +245,17 @@ export class OpenAIClient {
           throw error;
         }
 
-        return await response.json();
+        // 先获取响应文本，检测是否为 SSE 流式格式
+        const responseText = await response.text();
+
+        // 检测是否是 SSE 格式（以 "data: " 开头）
+        if (responseText.trimStart().startsWith('data: ')) {
+          // 解析 SSE 格式响应
+          return this._parseSSEResponse(responseText);
+        }
+
+        // 普通 JSON 响应
+        return JSON.parse(responseText);
       } catch (e) {
         if (e.name === "AbortError") {
           lastError = new Error("OpenAI API 请求超时");
@@ -265,6 +275,76 @@ export class OpenAIClient {
     }
 
     throw lastError;
+  }
+
+  /**
+   * 解析 SSE 流式响应，提取所有 delta.content 并合并为完整响应
+   * @private
+   */
+  _parseSSEResponse(sseText) {
+    const lines = sseText.split('\n');
+    let fullContent = '';
+    let lastChunk = null;
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const dataStr = line.slice(6).trim();
+
+        // 跳过 [DONE] 标记
+        if (dataStr === '[DONE]') {
+          break;
+        }
+
+        try {
+          const chunk = JSON.parse(dataStr);
+          lastChunk = chunk;
+
+          // 提取 delta.content
+          const content = chunk.choices?.[0]?.delta?.content;
+          if (content) {
+            fullContent += content;
+          }
+        } catch (e) {
+          // 忽略解析失败的行
+          console.warn('[OpenAI] SSE 行解析失败:', dataStr);
+        }
+      }
+    }
+
+    // 构造标准的 OpenAI API 响应格式
+    if (lastChunk) {
+      return {
+        id: lastChunk.id,
+        object: 'chat.completion',
+        created: lastChunk.created,
+        model: lastChunk.model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: fullContent
+            },
+            finish_reason: 'stop'
+          }
+        ],
+        usage: lastChunk.usage || {}
+      };
+    }
+
+    // 如果没有有效数据，返回空响应
+    return {
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: fullContent
+          },
+          finish_reason: 'stop'
+        }
+      ]
+    };
   }
 
   /**

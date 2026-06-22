@@ -772,6 +772,7 @@ body {
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
+  max-height: calc(100vh - 120px);
 }
 
 .relay-sidebar-header {
@@ -802,8 +803,9 @@ body {
 }
 
 .relay-list {
-  max-height: 500px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .relay-item {
