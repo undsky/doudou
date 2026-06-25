@@ -73,18 +73,16 @@
           >
             <div class="form-section">
               <div class="openai-item-header">
-                <span
-                  class="openai-default-badge"
-                  id="openai-detail-badge"
-                  style="display: none"
-                  >默认</span
-                >
-                <div class="form-group">
+                <div style="display: flex; gap: 8px; align-items: center; flex: 1;">
+                  <select id="openaiType" style="padding:6px 10px;font-size:13px;border:1px solid #d9d9d9;border-radius:4px;min-width:90px;">
+                    <option value="dialog">对话</option>
+                    <option value="translate">翻译</option>
+                  </select>
                   <input
                     type="text"
                     id="openaiName"
-                    class="openai-name-input"
                     placeholder="配置名称"
+                    style="flex: 1; padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px;"
                   />
                 </div>
                 <div class="openai-item-actions">

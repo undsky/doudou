@@ -777,6 +777,8 @@
       translatePorts.add(port);
       let full = "";
 
+      console.log("[豆豆翻译] 发送翻译请求，configType: translate");
+
       function finish(ok, val) {
         if (settled) return;
         settled = true;
@@ -787,7 +789,7 @@
         ok ? resolve(val) : reject(val);
       }
 
-      port.postMessage({ type: "DOUDOU_CHAT_STREAM", messages });
+      port.postMessage({ type: "DOUDOU_CHAT_STREAM", messages, configType: "translate" });
 
       function cleanLLMOutput(text) {
         if (!text) return text;

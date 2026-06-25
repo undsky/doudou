@@ -317,6 +317,29 @@ body {
   border-color: #1890ff;
 }
 
+.model-selector {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #666;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.model-selector:hover {
+  border-color: #40a9ff;
+}
+
+.model-selector:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
 .sidebar-textarea {
   flex: none;
   resize: none;
@@ -534,12 +557,22 @@ body {
   padding: 4px 0;
 }
 
+/* skill shortcuts bar + model selector row */
+.sidebar-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
 /* skill shortcuts bar */
 .skill-shortcuts {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 0 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .skill-shortcut-btn {

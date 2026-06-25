@@ -706,6 +706,7 @@ const DEFAULT_OPENAI_CONFIG = {
   openaiApiKey: "",
   openaiBaseUrl: "",
   openaiModel: "",
+  type: "dialog", // translate 或 dialog，默认为对话
 };
 
 let openaiConfigs = [];
@@ -741,6 +742,10 @@ function normalizeOpenaiConfig(config = {}, usedIds = null) {
       typeof config.openaiModel === "string"
         ? config.openaiModel
         : DEFAULT_OPENAI_CONFIG.openaiModel,
+    type:
+      config.type === "translate" || config.type === "dialog"
+        ? config.type
+        : DEFAULT_OPENAI_CONFIG.type,
   };
 }
 
@@ -769,6 +774,10 @@ function createOpenaiConfig(config = {}, usedIds = null) {
       typeof config.openaiModel === "string"
         ? config.openaiModel
         : DEFAULT_OPENAI_CONFIG.openaiModel,
+    type:
+      config.type === "translate" || config.type === "dialog"
+        ? config.type
+        : DEFAULT_OPENAI_CONFIG.type,
   };
 }
 
@@ -784,7 +793,8 @@ function normalizeOpenaiConfigs(configs = []) {
       normalized.name !== config.name ||
       normalized.openaiApiKey !== config.openaiApiKey ||
       normalized.openaiBaseUrl !== config.openaiBaseUrl ||
-      normalized.openaiModel !== config.openaiModel
+      normalized.openaiModel !== config.openaiModel ||
+      normalized.type !== config.type
     ) {
       changed = true;
     }
@@ -926,9 +936,11 @@ function renderOpenaiList() {
     el.draggable = true;
 
     const badge =
-      index === 0
-        ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">默认</span>'
-        : "";
+      config.type === "translate"
+        ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">翻译</span>'
+        : config.type === "dialog"
+          ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">对话</span>'
+          : "";
     el.innerHTML = `
       <span class="openai-drag-handle">≡</span>
       ${badge}<span class="relay-item-name" title="${escapeAttr(config.name)}">${escapeAttr(config.name) || "未命名配置"}</span>
@@ -1034,15 +1046,15 @@ function selectOpenai(id) {
   const config = openaiConfigs.find((c) => c.id === id);
   if (!config) return;
 
-  const index = openaiConfigs.indexOf(config);
   document.getElementById("openaiName").value = config.name || "";
+  document.getElementById("openaiType").value = config.type || "dialog";
   document.getElementById("openaiBaseUrl").value = config.openaiBaseUrl || "";
   document.getElementById("openaiApiKey").value = config.openaiApiKey || "";
   document.getElementById("openaiModel").value = config.openaiModel || "";
 
-  // 更新默认标识
+  // 移除默认标识相关代码
   const badge = document.getElementById("openai-detail-badge");
-  if (badge) badge.style.display = index === 0 ? "inline-block" : "none";
+  if (badge) badge.style.display = "none";
 
   // 重置获取模型状态，并中断之前的测活任务
   currentGetModelsTaskId++;
@@ -1063,7 +1075,22 @@ function saveOpenaiBasic(showToastMessage = true) {
   const config = openaiConfigs.find((c) => c.id === currentOpenaiId);
   if (!config) return;
 
+  const newType = document.getElementById("openaiType").value;
+
+  // 如果改为"翻译"类型，检查是否已有其他翻译配置
+  if (newType === "translate" && config.type !== "translate") {
+    const existingTranslate = openaiConfigs.find(
+      (c) => c.id !== currentOpenaiId && c.type === "translate"
+    );
+    if (existingTranslate) {
+      // 将已存在的翻译配置改为对话
+      existingTranslate.type = "dialog";
+      console.log(`[豆豆设置] 将配置"${existingTranslate.name}"从翻译改为对话`);
+    }
+  }
+
   config.name = document.getElementById("openaiName").value.trim();
+  config.type = newType;
   config.openaiBaseUrl = document.getElementById("openaiBaseUrl").value.trim();
   config.openaiApiKey = document.getElementById("openaiApiKey").value.trim();
   config.openaiModel = document.getElementById("openaiModel").value.trim();
@@ -1447,7 +1474,7 @@ function init() {
   }
 
   // AI 配置详情：自动保存
-  ["openaiName", "openaiBaseUrl", "openaiApiKey", "openaiModel"].forEach(
+  ["openaiType", "openaiName", "openaiBaseUrl", "openaiApiKey", "openaiModel"].forEach(
     (id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("change", () => saveOpenaiBasic(false));

@@ -8,6 +8,9 @@ import { OpenAIClient } from "./ai/openai.js";
   let sidepanelPort = null;
   let screenshotBusy = false;
 
+  // 模型选择相关
+  let selectedModelConfigId = null; // 当前选中的配置ID
+
   function onPortMessage(msg) {
     if (msg.type === "SCREENSHOT_RESULT") {
       screenshotBusy = false;
@@ -298,6 +301,63 @@ import { OpenAIClient } from "./ai/openai.js";
   }
 
   renderSkillShortcuts();
+
+  // ========== 模型选择器 ==========
+  const modelSelector = document.getElementById("doudou-model-selector");
+
+  // 加载对话类型的配置列表
+  async function loadDialogModels() {
+    try {
+      const { openaiConfigs, selectedDialogModelId } = await chrome.storage.sync.get([
+        "openaiConfigs",
+        "selectedDialogModelId",
+      ]);
+
+      if (!openaiConfigs || openaiConfigs.length === 0) {
+        modelSelector.innerHTML = '<option value="">未配置模型</option>';
+        return;
+      }
+
+      // 只显示对话类型的配置
+      const dialogConfigs = openaiConfigs.filter((c) => c.type === "dialog");
+
+      if (dialogConfigs.length === 0) {
+        modelSelector.innerHTML = '<option value="">无对话模型</option>';
+        return;
+      }
+
+      // 渲染选项
+      modelSelector.innerHTML = dialogConfigs
+        .map((config) => `<option value="${config.id}">${config.name || "未命名配置"}</option>`)
+        .join("");
+
+      // 恢复上次选择
+      if (selectedDialogModelId && dialogConfigs.find((c) => c.id === selectedDialogModelId)) {
+        modelSelector.value = selectedDialogModelId;
+        selectedModelConfigId = selectedDialogModelId;
+      } else {
+        // 默认选中第一个
+        selectedModelConfigId = dialogConfigs[0].id;
+        modelSelector.value = selectedModelConfigId;
+      }
+
+      console.log(`[豆豆侧边栏] 加载了 ${dialogConfigs.length} 个对话模型，当前选中: ${selectedModelConfigId}`);
+    } catch (error) {
+      console.error("[豆豆侧边栏] 加载模型列表失败:", error);
+      modelSelector.innerHTML = '<option value="">加载失败</option>';
+    }
+  }
+
+  // 监听模型切换
+  modelSelector.addEventListener("change", async () => {
+    selectedModelConfigId = modelSelector.value;
+    // 缓存用户选择
+    await chrome.storage.sync.set({ selectedDialogModelId: selectedModelConfigId });
+    console.log(`[豆豆侧边栏] 切换模型: ${selectedModelConfigId}`);
+  });
+
+  // 初始化加载
+  loadDialogModels();
 
   function showSkillPicker(query) {
     const q = (query || "").toLowerCase();
@@ -951,9 +1011,14 @@ import { OpenAIClient } from "./ai/openai.js";
     const port = chrome.runtime.connect({ name: "doudou-chat" });
     currentPort = port;
 
+    const configType = translateMode ? "translate" : "dialog";
+    console.log(`[豆豆侧边栏] 发送${translateMode ? '翻译' : '对话'}请求，configType: ${configType}, selectedModelConfigId: ${selectedModelConfigId}`);
+
     port.postMessage({
       type: "DOUDOU_CHAT_STREAM",
       messages: messages,
+      configType: configType,
+      configId: selectedModelConfigId, // 传递选中的配置ID
     });
 
     port.onMessage.addListener((msg) => {

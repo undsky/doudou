@@ -102,14 +102,58 @@ chrome.runtime.onConnect.addListener((port) => {
     if (msg.type !== "DOUDOU_CHAT_STREAM") return;
 
     try {
-      const client = await OpenAIClient.fromStorage();
-      if (!client) {
+      // 根据传入的 configType 获取对应配置
+      const configType = msg.configType || "dialog"; // 默认使用对话模型
+      const configId = msg.configId; // 侧边栏传递的指定配置ID
+      const { openaiConfigs } = await chrome.storage.sync.get(["openaiConfigs"]);
+
+      console.log(`[豆豆] 收到聊天请求，configType: ${configType}, configId: ${configId || "未指定"}`);
+      console.log(`[豆豆] 当前配置列表:`, openaiConfigs?.map(c => ({ name: c.name, type: c.type, id: c.id })));
+
+      let config = null;
+      if (openaiConfigs && openaiConfigs.length > 0) {
+        // 1. 如果指定了配置ID，优先使用指定的配置
+        if (configId) {
+          config = openaiConfigs.find(c => c.id === configId);
+          if (config) {
+            console.log(`[豆豆] 使用指定配置ID: ${config.name} (ID: ${config.id})`);
+          }
+        }
+
+        // 2. 如果没有指定ID或ID未找到，按类型匹配
+        if (!config) {
+          config = openaiConfigs.find(c => c.type === configType);
+          if (config) {
+            console.log(`[豆豆] 按类型匹配配置: ${config.name} (类型: ${config.type})`);
+          }
+        }
+
+        // 3. 如果都没找到，使用第一个配置兜底
+        if (!config) {
+          console.log(`[豆豆] 未找到类型为 "${configType}" 的配置，使用第一个配置兜底`);
+          config = openaiConfigs[0];
+        }
+      }
+
+      if (!config || !config.openaiApiKey) {
+        console.error("[豆豆] 配置错误: 未找到有效的 API Key");
         port.postMessage({
           type: "error",
           data: "请先在「设置」页面配置 OpenAI API Key",
         });
         return;
       }
+
+      const client = new OpenAIClient({
+        apiKey: config.openaiApiKey,
+        baseURL: config.openaiBaseUrl || "https://api.openai.com/v1",
+        model: config.openaiModel || "gpt-4o",
+      });
+
+      console.log(`[豆豆] 使用配置: ${config.name}`);
+      console.log(`[豆豆] Base URL: ${client.baseURL}`);
+      console.log(`[豆豆] Model: ${client.model}`);
+      console.log(`[豆豆] 完整请求地址: ${client.baseURL}/chat/completions`);
 
       const messages = OpenAIClient.formatMessages(msg.messages);
       const response = await fetch(`${client.baseURL}/chat/completions`, {
