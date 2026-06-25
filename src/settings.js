@@ -1222,7 +1222,7 @@ async function testOpenaiItem() {
       timeout: 15000,
     });
 
-    const reply = await client.chat("Hi", { max_tokens: 5 });
+    const reply = await client.chat("你是什么模型", { max_tokens: 5 });
     showToast(`✓ 连接成功！模型回复: ${reply}`, "success");
   } catch (error) {
     showToast(`✗ 连接失败: ${error.message}`, "error");
