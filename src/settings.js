@@ -1060,10 +1060,15 @@ function selectOpenai(id) {
   currentGetModelsTaskId++;
   const statusEl = document.getElementById("openaiGetModelsStatus");
   const modelsListEl = document.getElementById("openaiModelsList");
+  const filterEl = document.getElementById("openaiModelsFilter");
   if (statusEl) statusEl.textContent = "";
   if (modelsListEl) {
     modelsListEl.style.display = "none";
     modelsListEl.innerHTML = "";
+  }
+  if (filterEl) {
+    filterEl.style.display = "none";
+    filterEl.value = "";
   }
 }
 
@@ -1316,6 +1321,12 @@ async function getOpenaiModels() {
       return;
     }
 
+    // 显示筛选框
+    const filterEl = document.getElementById("openaiModelsFilter");
+    if (filterEl) {
+      filterEl.style.display = "block";
+    }
+
     modelsListEl.style.display = "grid";
     const badgeElements = [];
 
@@ -1324,6 +1335,8 @@ async function getOpenaiModels() {
       if (!modelId) return;
 
       const container = document.createElement("div");
+      container.className = "model-item";
+      container.dataset.modelId = modelId.toLowerCase();
       container.style.cssText = "display: flex; align-items: center; justify-content: space-between; border: 1px solid #d9d9d9; border-radius: 4px; background: #f5f5f5; transition: all 0.2s; overflow: hidden;";
 
       const badge = document.createElement("span");
@@ -1417,6 +1430,35 @@ async function getOpenaiModels() {
 
     if (currentGetModelsTaskId === taskId) {
       statusEl.textContent = `共获取 ${models.length} 个模型`;
+    }
+
+    // 绑定筛选功能
+    if (filterEl) {
+      // 移除之前的事件监听器（如果存在）
+      const newFilterEl = filterEl.cloneNode(true);
+      filterEl.parentNode.replaceChild(newFilterEl, filterEl);
+
+      newFilterEl.addEventListener("input", (e) => {
+        const keyword = e.target.value.toLowerCase().trim();
+        const items = modelsListEl.querySelectorAll(".model-item");
+        let visibleCount = 0;
+
+        items.forEach((item) => {
+          const modelId = item.dataset.modelId;
+          if (!keyword || modelId.includes(keyword)) {
+            item.style.display = "flex";
+            visibleCount++;
+          } else {
+            item.style.display = "none";
+          }
+        });
+
+        if (currentGetModelsTaskId === taskId) {
+          statusEl.textContent = keyword
+            ? `筛选模型 ${visibleCount} 个`
+            : `共获取 ${models.length} 个模型`;
+        }
+      });
     }
 
   } catch (error) {
