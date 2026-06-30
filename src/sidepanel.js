@@ -318,8 +318,8 @@ import { OpenAIClient } from "./ai/openai.js";
         return;
       }
 
-      // 只显示对话类型的配置
-      const dialogConfigs = openaiConfigs.filter((c) => c.type === "dialog");
+      // 只显示对话或多态类型的配置
+      const dialogConfigs = openaiConfigs.filter((c) => c.type === "dialog" || c.type === "poly");
 
       if (dialogConfigs.length === 0) {
         modelSelector.innerHTML = '<option value="">无对话模型</option>';

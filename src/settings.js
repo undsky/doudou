@@ -706,7 +706,7 @@ const DEFAULT_OPENAI_CONFIG = {
   openaiApiKey: "",
   openaiBaseUrl: "",
   openaiModel: "",
-  type: "dialog", // translate 或 dialog，默认为对话
+  type: "dialog", // translate, dialog 或 poly，默认为对话
 };
 
 let openaiConfigs = [];
@@ -743,7 +743,7 @@ function normalizeOpenaiConfig(config = {}, usedIds = null) {
         ? config.openaiModel
         : DEFAULT_OPENAI_CONFIG.openaiModel,
     type:
-      config.type === "translate" || config.type === "dialog"
+      config.type === "translate" || config.type === "dialog" || config.type === "poly"
         ? config.type
         : DEFAULT_OPENAI_CONFIG.type,
   };
@@ -775,7 +775,7 @@ function createOpenaiConfig(config = {}, usedIds = null) {
         ? config.openaiModel
         : DEFAULT_OPENAI_CONFIG.openaiModel,
     type:
-      config.type === "translate" || config.type === "dialog"
+      config.type === "translate" || config.type === "dialog" || config.type === "poly"
         ? config.type
         : DEFAULT_OPENAI_CONFIG.type,
   };
@@ -940,7 +940,9 @@ function renderOpenaiList() {
         ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">翻译</span>'
         : config.type === "dialog"
           ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">对话</span>'
-          : "";
+          : config.type === "poly"
+            ? '<span class="openai-default-badge" style="margin-right:4px;font-size:10px;">多态</span>'
+            : "";
     el.innerHTML = `
       <span class="openai-drag-handle">≡</span>
       ${badge}<span class="relay-item-name" title="${escapeAttr(config.name)}">${escapeAttr(config.name) || "未命名配置"}</span>
