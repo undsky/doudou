@@ -905,7 +905,9 @@ function renderResponse() {
     dom.responseTextPreview.textContent = "等待响应...";
     dom.responseJsoneditor.classList.add("hidden");
     responseEditor.set({ message: "等待响应" });
-    responseEditor.expandAll();
+    if (typeof responseEditor.expandAll === 'function') {
+      responseEditor.expandAll();
+    }
     renderResponseTabs();
     return;
   }
@@ -920,7 +922,9 @@ function renderResponse() {
     dom.responseJsoneditor.classList.remove("hidden");
     dom.responseTextPreview.hidden = true;
     responseEditor.set(response.parsedJson);
-    responseEditor.expandAll();
+    if (typeof responseEditor.expandAll === 'function') {
+      responseEditor.expandAll();
+    }
   } else {
     dom.responseJsoneditor.classList.add("hidden");
     dom.responseTextPreview.hidden = false;
