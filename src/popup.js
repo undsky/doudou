@@ -632,9 +632,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     corsUnblockBtn.addEventListener("click", async () => {
       try {
-        const statusRes = await chrome.runtime.sendMessage({
-          type: "GET_CORS_STATUS",
+        const statusRes = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: "GET_CORS_STATUS" }, (res) => {
+            if (chrome.runtime.lastError) {
+              console.error("[豆豆] GET_CORS_STATUS 错误:", chrome.runtime.lastError);
+              resolve({ config: {} });
+            } else {
+              resolve(res);
+            }
+          });
         });
+
         const currentConfig = {
           ...DEFAULT_CORS_CONFIG,
           ...(statusRes?.config || {}),
@@ -646,9 +654,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         await chrome.storage.local.set({ corsConfig: nextConfig });
 
-        const updateRes = await chrome.runtime.sendMessage({
-          type: "CORS_UPDATE_CONFIG",
-          config: nextConfig,
+        const updateRes = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+            type: "CORS_UPDATE_CONFIG",
+            config: nextConfig,
+          }, (res) => {
+            if (chrome.runtime.lastError) {
+              console.error("[豆豆] CORS_UPDATE_CONFIG 错误:", chrome.runtime.lastError);
+              resolve({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              resolve(res);
+            }
+          });
         });
 
         if (!updateRes?.success) {

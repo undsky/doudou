@@ -1,6 +1,3 @@
-// COSE 多平台文章同步
-import "../bundles/background.js";
-
 // Cookie 工具
 import {
   cookiesToNetscapeFile,
@@ -48,23 +45,27 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "DOUDOU_TRANSLATE_PAGE",
 ]);
 
-// 消息监听
+// 消息监听 - 豆豆优先处理
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // 不处理非豆豆的消息类型，交给 COSE 监听器处理
-  if (!DOUDOU_MESSAGE_TYPES.has(request.type)) {
-    return false;
+  // 豆豆消息类型由豆豆处理
+  if (DOUDOU_MESSAGE_TYPES.has(request.type)) {
+    (async () => {
+      try {
+        const result = await handleMessage(request, sender);
+        sendResponse(result);
+      } catch (err) {
+        console.error("[豆豆] 消息处理错误:", err);
+        sendResponse({ error: err.message || "未知错误" });
+      }
+    })();
+    return true; // 表示异步响应
   }
-  (async () => {
-    try {
-      const result = await handleMessage(request, sender);
-      sendResponse(result);
-    } catch (err) {
-      console.error("[豆豆] 消息处理错误:", err);
-      sendResponse({ error: err.message || "未知错误" });
-    }
-  })();
-  return true; // 表示异步响应
+  // 非豆豆消息类型，不处理，让 COSE 处理
+  return false;
 });
+
+// COSE 多平台文章同步 - 在豆豆监听器注册后导入
+import "../bundles/background.js";
 
 // Side Panel 状态追踪
 let sidePanelPort = null;

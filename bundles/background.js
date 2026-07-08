@@ -3145,6 +3145,34 @@ var require_background = __commonJS({
       if (request.type && request.type.startsWith("OFFSCREEN_")) {
         return false;
       }
+      // 豆豆专用消息类型，不处理
+      const DOUDOU_MESSAGE_TYPES = new Set([
+        "CRAWLER_SELECTOR_RESULT",
+        "CRAWLER_SELECTOR_CANCELLED",
+        "GET_PAGE_COOKIES",
+        "CORS_UPDATE_CONFIG",
+        "GET_CORS_STATUS",
+        "DOUDOU_BTN_ACTION",
+        "TOGGLE_SIDE_PANEL",
+        "OPEN_SIDE_PANEL",
+        "ASK_AI",
+        "SUMMARIZE_PAGE_ACTION",
+        "GET_SIDEPANEL_STATUS",
+        "SIDEPANEL_CAPTURE_SCREENSHOT",
+        "SIDEPANEL_GET_PAGE_CONTENT",
+        "SCREENSHOT_RESULT",
+        "POPUP_CAPTURE_SCREENSHOT",
+        "DOWNLOAD_SCREENSHOT",
+        "VOICE_START",
+        "VOICE_STOP",
+        "VOICE_RESULT",
+        "VOICE_ERROR",
+        "VOICE_END",
+        "DOUDOU_TRANSLATE_PAGE",
+      ]);
+      if (DOUDOU_MESSAGE_TYPES.has(request.type)) {
+        return false;
+      }
       if (request.type === "GET_DEBUG_LOGS") {
         chrome.storage.local.get("debug_logs", (result) => {
           sendResponse({ logs: result.debug_logs || [] });
