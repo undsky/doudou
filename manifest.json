@@ -59,7 +59,8 @@
         "src/image_text/*",
         "bundles/inject.js",
         "bundles/platforms/*.js",
-        "src/ai/openai.js"
+        "src/ai/openai.js",
+        "md/static/js/highlight-languages/es/languages/*.js"
       ],
       "matches": ["<all_urls>"]
     },
