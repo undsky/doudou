@@ -1169,7 +1169,7 @@ async function loadOpenaiList() {
  */
 function addOpenaiItem() {
   const newId = generateId();
-  openaiConfigs.push(
+  openaiConfigs.unshift(
     createOpenaiConfig({
       id: newId,
       name: `配置 ${openaiConfigs.length + 1}`,
