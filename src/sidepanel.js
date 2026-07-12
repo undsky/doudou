@@ -1018,7 +1018,7 @@ import { OpenAIClient } from "./ai/openai.js";
       type: "DOUDOU_CHAT_STREAM",
       messages: messages,
       configType: configType,
-      configId: selectedModelConfigId, // 传递选中的配置ID
+      configId: translateMode ? undefined : selectedModelConfigId, // 传递选中的配置ID
     });
 
     port.onMessage.addListener((msg) => {
