@@ -73,8 +73,19 @@
           >
             <div class="form-section">
               <div class="openai-item-header">
-                <div style="display: flex; gap: 8px; align-items: center; flex: 1;">
-                  <select id="openaiType" style="padding:6px 10px;font-size:13px;border:1px solid #d9d9d9;border-radius:4px;min-width:90px;">
+                <div
+                  style="display: flex; gap: 8px; align-items: center; flex: 1"
+                >
+                  <select
+                    id="openaiType"
+                    style="
+                      padding: 6px 10px;
+                      font-size: 13px;
+                      border: 1px solid #d9d9d9;
+                      border-radius: 4px;
+                      min-width: 90px;
+                    "
+                  >
                     <option value="dialog">对话</option>
                     <option value="translate">翻译</option>
                     <option value="poly">多态</option>
@@ -83,7 +94,13 @@
                     type="text"
                     id="openaiName"
                     placeholder="配置名称"
-                    style="flex: 1; padding: 6px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px;"
+                    style="
+                      flex: 1;
+                      padding: 6px 12px;
+                      border: 1px solid #d9d9d9;
+                      border-radius: 4px;
+                      font-size: 13px;
+                    "
                   />
                 </div>
                 <div class="openai-item-actions">
@@ -112,14 +129,56 @@
                   <input type="text" id="openaiApiKey" />
                 </div>
               </div>
-              <div class="form-row" style="margin-top: 10px;">
-                <div class="form-group" style="width: 100%;">
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <button class="btn btn-secondary" id="openaiGetModelsBtn" style="font-size: 12px; padding: 4px 10px;">获取模型</button>
-                    <span id="openaiGetModelsStatus" style="font-size: 12px; color: #999;"></span>
-                    <input type="text" id="openaiModelsFilter" placeholder="筛选模型..." style="width: 200px; padding: 4px 10px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; display: none; margin-left: auto;" />
+              <div class="form-row" style="margin-top: 10px">
+                <div class="form-group" style="width: 100%">
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      margin-bottom: 8px;
+                    "
+                  >
+                    <button
+                      class="btn btn-secondary"
+                      id="openaiGetModelsBtn"
+                      style="font-size: 12px; padding: 4px 10px"
+                    >
+                      获取模型
+                    </button>
+                    <span
+                      id="openaiGetModelsStatus"
+                      style="font-size: 12px; color: #999"
+                    ></span>
+                    <input
+                      type="text"
+                      id="openaiModelsFilter"
+                      placeholder="筛选模型..."
+                      style="
+                        width: 200px;
+                        padding: 4px 10px;
+                        font-size: 12px;
+                        border: 1px solid #d9d9d9;
+                        border-radius: 4px;
+                        display: none;
+                        margin-left: auto;
+                      "
+                    />
                   </div>
-                  <div id="openaiModelsList" style="display: none; max-height: calc(100vh - 400px); min-height: 60px; overflow-y: auto; border: 1px solid #d9d9d9; border-radius: 4px; padding: 8px; gap: 6px; grid-template-columns: repeat(3, 1fr);"></div>
+                  <div
+                    id="openaiModelsList"
+                    style="
+                      display: none;
+                      max-height: calc(100vh - 400px);
+                      min-height: 60px;
+                      overflow-y: auto;
+                      border: 1px solid #d9d9d9;
+                      border-radius: 4px;
+                      padding: 8px;
+                      gap: 6px;
+                      grid-template-columns: repeat(3, 1fr);
+                    "
+                  ></div>
                 </div>
               </div>
             </div>
@@ -414,34 +473,7 @@
             </div>
             <div>
               <p style="color: #666; font-size: 14px; margin-bottom: 10px">
-                微信交流群
-              </p>
-              <img
-                id="wechat-group-img"
-                src=""
-                alt="微信交流群"
-                style="
-                  width: 200px;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                "
-              />
-              <div
-                style="
-                  margin-top: 15px;
-                  text-align: left;
-                  width: fit-content;
-                  margin-left: auto;
-                  margin-right: auto;
-                  color: #666;
-                  font-size: 13px;
-                  line-height: 1.6;
-                "
-              ></div>
-            </div>
-            <div>
-              <p style="color: #666; font-size: 14px; margin-bottom: 10px">
-                QQ 交流群
+                QQ 交流群（1095058701）
               </p>
               <img
                 src="../assets/qqqun.jpg"

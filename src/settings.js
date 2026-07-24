@@ -1648,11 +1648,6 @@ function init() {
     versionEl.textContent = `版本 v${manifest.version}`;
   }
 
-  // 加载交流群图片（防止缓存）
-  const groupImg = document.getElementById("wechat-group-img");
-  if (groupImg) {
-    groupImg.src = `https://cdn.undsky.com/img/doudouqun.jpg?v=${Math.random()}`;
-  }
 
   // 检查 URL hash，根据 hash 切换到对应 tab
   const hash = window.location.hash.slice(1);
