@@ -542,12 +542,21 @@
       }
     });
 
+    function cleanup() {
+      document.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("message", onIframeEsc);
+      overlay.remove();
+      document
+        .querySelectorAll("#doudou-screenshot-overlay")
+        .forEach((el) => el.remove());
+    }
+
     const onKey = (e) => {
       if (e.key === "Escape") {
         cleanup();
-        document.removeEventListener("keydown", onKey, true);
-        window.removeEventListener("message", onIframeEsc);
-        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" });
+        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" }, () => {
+          void chrome.runtime.lastError;
+        });
       }
     };
     document.addEventListener("keydown", onKey, true);
@@ -556,9 +565,9 @@
     const onIframeEsc = (e) => {
       if (e.data?.type === "DOUDOU_IFRAME_ESC") {
         cleanup();
-        document.removeEventListener("keydown", onKey, true);
-        window.removeEventListener("message", onIframeEsc);
-        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" });
+        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" }, () => {
+          void chrome.runtime.lastError;
+        });
       }
     };
     window.addEventListener("message", onIframeEsc);
@@ -567,9 +576,9 @@
       btns.querySelector("#doudou-ss-cancel").addEventListener("click", (e) => {
         e.stopPropagation();
         cleanup();
-        document.removeEventListener("keydown", onKey, true);
-        window.removeEventListener("message", onIframeEsc);
-        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" });
+        chrome.runtime.sendMessage({ type: "SCREENSHOT_CANCELLED" }, () => {
+          void chrome.runtime.lastError;
+        });
       });
 
       btns
@@ -594,19 +603,21 @@
           );
           const cropped = canvas.toDataURL("image/png");
           cleanup();
-          document.removeEventListener("keydown", onKey, true);
-          window.removeEventListener("message", onIframeEsc);
 
           if (isContextValid()) {
             if (mode === "download") {
               chrome.runtime.sendMessage({
                 type: "DOWNLOAD_SCREENSHOT",
                 data: cropped,
+              }, () => {
+                void chrome.runtime.lastError;
               });
             } else {
               chrome.runtime.sendMessage({
                 type: "SCREENSHOT_RESULT",
                 data: cropped,
+              }, () => {
+                void chrome.runtime.lastError;
               });
             }
           }

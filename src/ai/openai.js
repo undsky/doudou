@@ -164,22 +164,26 @@ export class OpenAIClient {
 
     // 某些 coder 模型会返回 tool_calls 而非文本，自动重试并禁用工具调用
     if (!content && !reasoningContent && finishReason === "tool_calls") {
-      // console.warn(
-      //   "[OpenAI] 模型返回 tool_calls 而非文本内容，将以 tool_choice=none 重试",
-      // );
-      const retryResult = await this.chatCompletions(messages, {
-        ...rest,
-        tool_choice: "none",
-      });
-      const retryMsg = retryResult?.choices?.[0]?.message;
-      const retryContent = retryMsg?.content || retryMsg?.reasoning_content;
-      if (retryContent) {
-        return retryContent;
+      try {
+        const retryResult = await this.chatCompletions(messages, {
+          ...rest,
+          tool_choice: "none",
+        });
+        const retryMsg = retryResult?.choices?.[0]?.message;
+        const retryContent = retryMsg?.content || retryMsg?.reasoning_content;
+        if (retryContent) {
+          return retryContent;
+        }
+        console.warn(
+          "[OpenAI] 重试后仍为空，原始响应:",
+          JSON.stringify(retryResult).slice(0, 500),
+        );
+      } catch (retryErr) {
+        console.warn(
+          "[OpenAI] 重试带 tool_choice=none 失败:",
+          retryErr.message,
+        );
       }
-      console.warn(
-        "[OpenAI] 重试后仍为空，原始响应:",
-        JSON.stringify(retryResult).slice(0, 500),
-      );
       return "";
     }
 
@@ -211,51 +215,53 @@ export class OpenAIClient {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-        const response = await fetch(url, {
-          ...options,
-          headers: { ...headers, ...options.headers },
-          signal: controller.signal,
-        });
+        try {
+          const response = await fetch(url, {
+            ...options,
+            headers: { ...headers, ...options.headers },
+            signal: controller.signal,
+          });
 
-        clearTimeout(timeoutId);
+          if (!response.ok) {
+            const errorBody = await response.text().catch(() => "");
+            const error = new Error(
+              `OpenAI API 错误 ${response.status}: ${errorBody}`,
+            );
+            error.status = response.status;
+            error.response = errorBody;
 
-        if (!response.ok) {
-          const errorBody = await response.text().catch(() => "");
-          const error = new Error(
-            `OpenAI API 错误 ${response.status}: ${errorBody}`,
-          );
-          error.status = response.status;
-          error.response = errorBody;
+            // 4xx 错误（除 429）不重试
+            if (
+              response.status >= 400 &&
+              response.status < 500 &&
+              response.status !== 429
+            ) {
+              throw error;
+            }
 
-          // 4xx 错误（除 429）不重试
-          if (
-            response.status >= 400 &&
-            response.status < 500 &&
-            response.status !== 429
-          ) {
+            lastError = error;
+            // 重试前等待
+            if (attempt < this.maxRetries) {
+              await this._sleep(Math.pow(2, attempt) * 1000);
+              continue;
+            }
             throw error;
           }
 
-          lastError = error;
-          // 重试前等待
-          if (attempt < this.maxRetries) {
-            await this._sleep(Math.pow(2, attempt) * 1000);
-            continue;
+          // 先获取响应文本，检测是否为 SSE 流式格式
+          const responseText = await response.text();
+
+          // 检测是否是 SSE 格式（以 "data: " 开头）
+          if (responseText.trimStart().startsWith('data: ')) {
+            // 解析 SSE 格式响应
+            return this._parseSSEResponse(responseText);
           }
-          throw error;
+
+          // 普通 JSON 响应
+          return JSON.parse(responseText);
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        // 先获取响应文本，检测是否为 SSE 流式格式
-        const responseText = await response.text();
-
-        // 检测是否是 SSE 格式（以 "data: " 开头）
-        if (responseText.trimStart().startsWith('data: ')) {
-          // 解析 SSE 格式响应
-          return this._parseSSEResponse(responseText);
-        }
-
-        // 普通 JSON 响应
-        return JSON.parse(responseText);
       } catch (e) {
         if (e.name === "AbortError") {
           lastError = new Error("OpenAI API 请求超时");

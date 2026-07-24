@@ -37,12 +37,14 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "SCREENSHOT_RESULT",
   "POPUP_CAPTURE_SCREENSHOT",
   "DOWNLOAD_SCREENSHOT",
+  "DOUDOU_DOWNLOAD_MEDIA",
   "VOICE_START",
   "VOICE_STOP",
   "VOICE_RESULT",
   "VOICE_ERROR",
   "VOICE_END",
   "DOUDOU_TRANSLATE_PAGE",
+  "OPEN_TAB",
 ]);
 
 // 消息监听 - 豆豆优先处理
@@ -222,7 +224,7 @@ async function streamSSEResponse(response, port, isDisconnected) {
   try {
     while (true) {
       if (isDisconnected()) {
-        reader.cancel();
+        await reader.cancel().catch(() => {});
         break;
       }
 
@@ -264,7 +266,7 @@ async function streamSSEResponse(response, port, isDisconnected) {
               type: "error",
               data: "由于 AI 模型推理陷入重复死循环，系统已自动中断本次回复。建议重新开启对话或修改提问内容。",
             });
-            await reader.cancel();
+            await reader.cancel().catch(() => {});
             break;
           }
         } catch {}
@@ -272,6 +274,10 @@ async function streamSSEResponse(response, port, isDisconnected) {
     }
   } catch (err) {
     if (!isDisconnected()) throw err;
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {}
   }
 }
 
@@ -511,6 +517,29 @@ async function handleMessage(request, sender) {
           saveAs: false,
         });
         return { success: true };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+    case "DOUDOU_DOWNLOAD_MEDIA": {
+      try {
+        await chrome.downloads.download({
+          url: request.url,
+          filename: request.filename,
+          saveAs: false,
+        });
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+    case "OPEN_TAB": {
+      try {
+        if (request.url) {
+          await chrome.tabs.create({ url: request.url });
+          return { success: true };
+        }
+        return { success: false, error: "未指定URL" };
       } catch (err) {
         return { success: false, error: err.message };
       }
@@ -816,7 +845,12 @@ async function handleDoudouBtnAction(action, tab) {
       const filename = `cookies_${hostname}_${dateStr}.${fileExt}`;
 
       const bytes = new TextEncoder().encode(cookieContent);
-      const base64 = btoa(String.fromCharCode(...bytes));
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      const base64 = btoa(binary);
       const mimeType = isJson ? "application/json" : "text/plain";
       const dataUrl = `data:${mimeType};base64,${base64}`;
       await chrome.downloads.download({
