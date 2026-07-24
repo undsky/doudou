@@ -1251,7 +1251,7 @@ chrome.runtime.onStartup.addListener(() => {
 
 // ==================== CORS Unblock 逻辑 ====================
 
-const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+const DEFAULT_CORS_EFFECTIVE_URLS = ["undsky.com"];
 
 const DEFAULT_CORS_CONFIG = {
   enabled: false,
@@ -1303,15 +1303,19 @@ function normalizeCorsEffectiveUrls(urls) {
     let url;
     try {
       url = new URL(raw);
+      // 完整 URL 模式：必须是 http/https
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      const normalizedUrl = raw.split("#")[0];
+      if (!seen.has(normalizedUrl)) {
+        seen.add(normalizedUrl);
+        normalized.push(normalizedUrl);
+      }
     } catch {
-      continue;
-    }
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") continue;
-    const normalizedUrl = raw.split("#")[0];
-    if (!seen.has(normalizedUrl)) {
-      seen.add(normalizedUrl);
-      normalized.push(normalizedUrl);
+      // 域名模式：不需要协议，直接保存
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        normalized.push(raw);
+      }
     }
   }
 
@@ -1332,21 +1336,46 @@ function normalizeCorsConfig(config = {}) {
 function isCorsEffectiveUrl(tabUrl, effectiveUrls) {
   if (!tabUrl) return false;
 
-  let normalizedTabUrl;
+  let tabUrlObj;
   try {
-    const url = new URL(tabUrl);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-    url.hash = "";
-    normalizedTabUrl = url.toString();
+    tabUrlObj = new URL(tabUrl);
+    if (tabUrlObj.protocol !== "http:" && tabUrlObj.protocol !== "https:") return false;
   } catch {
     return false;
   }
 
   return effectiveUrls.some((effectiveUrl) => {
-    if (normalizedTabUrl === effectiveUrl) return true;
-    if (effectiveUrl.endsWith("/")) return normalizedTabUrl.startsWith(effectiveUrl);
-    if (!normalizedTabUrl.startsWith(effectiveUrl)) return false;
-    const nextChar = normalizedTabUrl.charAt(effectiveUrl.length);
+    let matchUrlObj;
+    try {
+      // 尝试解析为完整 URL
+      matchUrlObj = new URL(effectiveUrl);
+    } catch {
+      // 如果不是完整 URL，视为域名模式匹配
+      const domain = effectiveUrl.trim();
+      if (!domain) return false;
+
+      // 域名匹配：支持任意子域名、端口、路径
+      // 例如：undsky.com 匹配 https://api.undsky.com:8080/path
+      const tabHost = tabUrlObj.hostname;
+
+      // 完全匹配或作为子域名
+      if (tabHost === domain || tabHost.endsWith('.' + domain)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // 如果是完整 URL，执行原有的精确匹配逻辑
+    tabUrlObj.hash = "";
+    const normalizedTabUrl = tabUrlObj.toString();
+    matchUrlObj.hash = "";
+    const normalizedMatchUrl = matchUrlObj.toString();
+
+    if (normalizedTabUrl === normalizedMatchUrl) return true;
+    if (normalizedMatchUrl.endsWith("/")) return normalizedTabUrl.startsWith(normalizedMatchUrl);
+    if (!normalizedTabUrl.startsWith(normalizedMatchUrl)) return false;
+    const nextChar = normalizedTabUrl.charAt(normalizedMatchUrl.length);
     return nextChar === "/" || nextChar === "?" || nextChar === "";
   });
 }
@@ -1360,7 +1389,16 @@ async function getCorsEffectiveTabIds(effectiveUrls) {
 }
 
 function makeCorsUrlFilter(url) {
-  return `|${url}`;
+  try {
+    // 尝试解析为完整 URL
+    new URL(url);
+    // 如果成功，说明是完整 URL，使用精确匹配
+    return `|${url}`;
+  } catch {
+    // 如果失败，说明是域名模式，使用域名匹配
+    // 例如：undsky.com -> ||undsky.com
+    return `||${url}`;
+  }
 }
 
 async function getCorsRuleIds() {

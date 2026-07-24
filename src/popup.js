@@ -1,7 +1,7 @@
 import { showToast } from "./utils/ui.js";
 import { setCrawlerAutoConfirmTrue } from "./utils/inject-helpers.js";
 
-const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+const DEFAULT_CORS_EFFECTIVE_URLS = ["undsky.com"];
 
 const DEFAULT_CORS_CONFIG = {
   enabled: false,

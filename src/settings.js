@@ -408,7 +408,7 @@ async function importCrawlerConfigs(file) {
   }
 }
 
-const DEFAULT_CORS_EFFECTIVE_URLS = ["https://undsky.com/doudou_canvas"];
+const DEFAULT_CORS_EFFECTIVE_URLS = ["undsky.com"];
 
 const DEFAULT_CORS_CONFIG = {
   enabled: false,
@@ -461,15 +461,19 @@ function normalizeCorsEffectiveUrls(urls) {
     let url;
     try {
       url = new URL(raw);
+      // 完整 URL 模式：必须是 http/https
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      const normalizedUrl = raw.split("#")[0];
+      if (!seen.has(normalizedUrl)) {
+        seen.add(normalizedUrl);
+        normalized.push(normalizedUrl);
+      }
     } catch {
-      continue;
-    }
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") continue;
-    const normalizedUrl = raw.split("#")[0];
-    if (!seen.has(normalizedUrl)) {
-      seen.add(normalizedUrl);
-      normalized.push(normalizedUrl);
+      // 域名模式：不需要协议，直接保存
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        normalized.push(raw);
+      }
     }
   }
 
@@ -488,18 +492,21 @@ function collectCorsEffectiveUrlsFromUI() {
     let url;
     try {
       url = new URL(raw);
-    } catch {
-      throw new Error("生效链接格式不正确");
-    }
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new Error("生效链接仅支持 http 或 https");
-    }
-
-    const normalizedUrl = raw.split("#")[0];
-    if (!seen.has(normalizedUrl)) {
-      seen.add(normalizedUrl);
-      urls.push(normalizedUrl);
+      // 完整 URL 模式：必须是 http/https
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("生效链接仅支持 http 或 https");
+      }
+      const normalizedUrl = raw.split("#")[0];
+      if (!seen.has(normalizedUrl)) {
+        seen.add(normalizedUrl);
+        urls.push(normalizedUrl);
+      }
+    } catch (urlError) {
+      // 域名模式：直接保存，不需要验证协议
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        urls.push(raw);
+      }
     }
   }
 
@@ -513,7 +520,7 @@ function addCorsEffectiveUrl(value = "", shouldFocus = true) {
   const item = document.createElement("div");
   item.className = "cors-url-item";
   item.innerHTML = `
-    <input type="url" class="cors-url-input" value="${escapeAttr(value)}" />
+    <input type="text" class="cors-url-input" value="${escapeAttr(value)}" placeholder="域名或完整URL（如：undsky.com 或 https://example.com/path）" />
     <button class="btn btn-danger" type="button">删除</button>
   `;
 
@@ -681,7 +688,10 @@ function initCorsEventListeners() {
 
   document
     .getElementById("add-cors-effective-url")
-    ?.addEventListener("click", () => addCorsEffectiveUrl());
+    ?.addEventListener("click", () => {
+      addCorsEffectiveUrl();
+      // 不立即保存，等用户输入后再保存
+    });
 
   document
     .getElementById("export-cors-config")
