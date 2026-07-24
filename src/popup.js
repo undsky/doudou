@@ -140,6 +140,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCorsStatus(true);
   }
 
+  // AI 智能体平台
+  const aiAgentPlatformBtn = document.getElementById("ai-agent-platform");
+  if (aiAgentPlatformBtn) {
+    aiAgentPlatformBtn.addEventListener("click", () => {
+      chrome.tabs.create({
+        url: "http://ai.undsky.com",
+      });
+    });
+  }
+
   // AI 画布
   const infiniteCanvasBtn = document.getElementById("infinite-canvas");
   if (infiniteCanvasBtn) {
