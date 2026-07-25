@@ -1038,14 +1038,14 @@ import { OpenAIClient } from "./ai/openai.js";
         let displayContent = fullContent;
         let extractedReasoning = "";
 
-        if (displayContent.startsWith("<think>\\n") || displayContent.startsWith("<think>")) {
+        if (displayContent.startsWith("<think>\n") || displayContent.startsWith("<think>")) {
           const thinkEnd = displayContent.indexOf("</think>");
           if (thinkEnd !== -1) {
-            extractedReasoning = displayContent.substring(displayContent.startsWith("<think>\\n") ? 8 : 7, thinkEnd);
+            extractedReasoning = displayContent.substring(displayContent.startsWith("<think>\n") ? 8 : 7, thinkEnd);
             displayContent = displayContent.substring(thinkEnd + 8);
-            displayContent = displayContent.replace(/^\\n+/, "");
+            displayContent = displayContent.replace(/^\n+/, "");
           } else {
-            extractedReasoning = displayContent.substring(displayContent.startsWith("<think>\\n") ? 8 : 7);
+            extractedReasoning = displayContent.substring(displayContent.startsWith("<think>\n") ? 8 : 7);
             displayContent = "";
           }
         }
@@ -1070,7 +1070,7 @@ import { OpenAIClient } from "./ai/openai.js";
         scrollToBottom(chatArea);
         
         // 当内容包含在 <think> 中且未结束时，不朗读 thinking 内部的内容
-        let isThinkingNow = (fullContent.startsWith("<think>\\n") || fullContent.startsWith("<think>")) && fullContent.indexOf("</think>") === -1;
+        let isThinkingNow = (fullContent.startsWith("<think>\n") || fullContent.startsWith("<think>")) && fullContent.indexOf("</think>") === -1;
         if (!isThinkingNow) {
           ttsFeed(msg.data);
         }

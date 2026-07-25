@@ -12,11 +12,14 @@
  * @returns {string} Netscape 格式的 cookie 行
  */
 export function cookieToNetscapeFormat(cookie) {
-  // domain: 如果是 hostOnly，domain 直接使用；否则添加 . 前缀
-  const domain = cookie.hostOnly ? cookie.domain : cookie.domain;
+  // domain: 如果是 hostOnly，domain 直接使用；否则如果未以 . 开头则添加 . 前缀
+  const domain =
+    cookie.hostOnly || cookie.domain.startsWith(".")
+      ? cookie.domain
+      : "." + cookie.domain;
 
-  // hostOnly: TRUE 表示不是域名级别的 cookie, FALSE 表示是域名级别的 cookie
-  const hostOnly = cookie.hostOnly ? "FALSE" : "TRUE";
+  // include_subdomains (Netscape 格式第 2 列): TRUE 表示匹配子域名(即非 hostOnly), FALSE 表示仅匹配主机(即 hostOnly)
+  const includeSubdomains = cookie.hostOnly ? "FALSE" : "TRUE";
 
   // path: cookie 的路径
   const path = cookie.path;
@@ -33,7 +36,7 @@ export function cookieToNetscapeFormat(cookie) {
   const name = cookie.name;
   const value = cookie.value;
 
-  return `${domain}\t${hostOnly}\t${path}\t${secure}\t${expiry}\t${name}\t${value}`;
+  return `${domain}\t${includeSubdomains}\t${path}\t${secure}\t${expiry}\t${name}\t${value}`;
 }
 
 /**

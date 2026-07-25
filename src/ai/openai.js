@@ -38,14 +38,21 @@ export class OpenAIClient {
    */
   static async fromStorage() {
     try {
-      const { openaiConfig } = await chrome.storage.sync.get(["openaiConfig"]);
-      if (!openaiConfig?.openaiApiKey) {
+      const { openaiConfigs, openaiConfig } = await chrome.storage.sync.get([
+        "openaiConfigs",
+        "openaiConfig",
+      ]);
+      const config =
+        openaiConfigs && openaiConfigs.length > 0
+          ? openaiConfigs[0]
+          : openaiConfig;
+      if (!config?.openaiApiKey) {
         return null;
       }
       return new OpenAIClient({
-        apiKey: openaiConfig.openaiApiKey,
-        baseURL: openaiConfig.openaiBaseUrl || "https://api.openai.com/v1",
-        model: openaiConfig.openaiModel || "gpt-4o",
+        apiKey: config.openaiApiKey,
+        baseURL: config.openaiBaseUrl || "https://api.openai.com/v1",
+        model: config.openaiModel || "gpt-4o",
       });
     } catch (e) {
       console.error("[OpenAI] 从存储加载配置失败:", e);
@@ -249,10 +256,14 @@ export class OpenAIClient {
           }
 
           // 先获取响应文本，检测是否为 SSE 流式格式
+          const contentType = response.headers.get("content-type") || "";
           const responseText = await response.text();
 
-          // 检测是否是 SSE 格式（以 "data: " 开头）
-          if (responseText.trimStart().startsWith('data: ')) {
+          // 检测是否是 SSE 格式（Content-Type 或文本包含 data: ）
+          if (
+            contentType.includes("text/event-stream") ||
+            /^(:\s*.*\n)*data:\s*/m.test(responseText.trimStart())
+          ) {
             // 解析 SSE 格式响应
             return this._parseSSEResponse(responseText);
           }

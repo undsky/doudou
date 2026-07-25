@@ -233,10 +233,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         showToast("正在进行整页截图，请勿操作页面...", "info");
 
-        // Attach debugger
-        await chrome.debugger.attach({ tabId: tab.id }, "1.3");
-
+        let isAttached = false;
         try {
+          // Attach debugger
+          await chrome.debugger.attach({ tabId: tab.id }, "1.3");
+          isAttached = true;
+
           // Enable page
           await chrome.debugger.sendCommand({ tabId: tab.id }, "Page.enable");
 
@@ -324,8 +326,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
           showToast("截图已保存", "success");
         } finally {
-          // Detach debugger
-          await chrome.debugger.detach({ tabId: tab.id });
+          // Detach debugger if attached
+          if (isAttached) {
+            await chrome.debugger.detach({ tabId: tab.id }).catch(() => {});
+          }
 
           // Reset button state
           labelEl.textContent = originalText;
@@ -699,18 +703,18 @@ document.addEventListener("DOMContentLoaded", () => {
  */
 async function handleCloneArticle() {
   try {
-    // 检查是否配置了 OpenAI
-    const { openaiConfig } = await chrome.storage.sync.get(["openaiConfig"]);
-    if (!openaiConfig?.openaiApiKey) {
+    // 检查是否配置了 OpenAI（兼容多配置 openaiConfigs 与单配置 openaiConfig）
+    const { openaiConfigs, openaiConfig } = await chrome.storage.sync.get([
+      "openaiConfigs",
+      "openaiConfig",
+    ]);
+    const config =
+      openaiConfigs && openaiConfigs.length > 0
+        ? openaiConfigs[0]
+        : openaiConfig;
+
+    if (!config?.openaiApiKey) {
       showToast("请先在「设置」页面配置 OpenAI API Key", "error");
-      return;
-    }
-    if (!openaiConfig?.openaiBaseUrl) {
-      showToast("请先在「设置」页面配置 OpenAI Base URL", "error");
-      return;
-    }
-    if (!openaiConfig?.openaiModel) {
-      showToast("请先在「设置」页面配置 OpenAI 模型", "error");
       return;
     }
 

@@ -1039,12 +1039,12 @@ const DEFAULT_PROMPT = `# 角色定义
 
 // 处理文章复刻
 async function handleArticleReplication(data, tabId, frameId = 0) {
-  try {
-    const target = { tabId };
-    if (frameId !== 0 && frameId !== undefined) {
-      target.frameIds = [frameId];
-    }
+  const target = { tabId };
+  if (frameId !== 0 && frameId !== undefined) {
+    target.frameIds = [frameId];
+  }
 
+  try {
     // 0. 显示 Loading
     await chrome.scripting.executeScript({
       target,
@@ -1203,15 +1203,27 @@ async function handleArticleReplication(data, tabId, frameId = 0) {
     await chrome.storage.local.set({ clone_article_prompt: editedPrompt });
 
     // 5. 调用 OpenAI (传入 Markdown)
-    const { openaiConfig } = await chrome.storage.sync.get(["openaiConfig"]);
+    const { openaiConfigs, openaiConfig } = await chrome.storage.sync.get([
+      "openaiConfigs",
+      "openaiConfig",
+    ]);
+    let activeConfig = null;
+    if (openaiConfigs && openaiConfigs.length > 0) {
+      activeConfig =
+        openaiConfigs.find((c) => c.type === "dialog" || c.type === "poly") ||
+        openaiConfigs[0];
+    } else if (openaiConfig) {
+      activeConfig = openaiConfig;
+    }
+
     let finalMarkdown = markdown;
 
-    if (openaiConfig?.openaiApiKey) {
+    if (activeConfig?.openaiApiKey) {
       console.log("[豆豆] 正在调用 OpenAI 进行文章复刻...");
       const client = new OpenAIClient({
-        apiKey: openaiConfig.openaiApiKey,
-        baseURL: openaiConfig.openaiBaseUrl,
-        model: openaiConfig.openaiModel,
+        apiKey: activeConfig.openaiApiKey,
+        baseURL: activeConfig.openaiBaseUrl || "https://api.openai.com/v1",
+        model: activeConfig.openaiModel || "gpt-4o",
       });
 
       const result = await client.chat(markdown, {
@@ -1258,18 +1270,20 @@ async function handleArticleReplication(data, tabId, frameId = 0) {
 
     return { success: true };
   } catch (error) {
-    console.error("[豆豆] 文章复刻失败:", error);
-
-    // 移除 loading 并报错
-    chrome.scripting.executeScript({
-      target,
-      func: (msg) => {
-        const overlay = document.getElementById("doudou-loading-overlay");
-        if (overlay) overlay.remove();
-        alert("文章复刻失败: " + msg);
-      },
-      args: [error.message],
-    });
+    // 移除 loading 并弹窗提示错误
+    try {
+      await chrome.scripting.executeScript({
+        target,
+        func: (msg) => {
+          const overlay = document.getElementById("doudou-loading-overlay");
+          if (overlay) overlay.remove();
+          alert("文章复刻失败: " + msg);
+        },
+        args: [error.message],
+      });
+    } catch (e) {
+      console.error("[豆豆] 移除 loading 弹窗提示失败:", e);
+    }
     return { success: false, error: error.message };
   }
 }
@@ -1305,7 +1319,7 @@ const DEFAULT_CORS_CONFIG = {
 
 // CORS 规则 ID 范围 (避免与其他规则冲突)
 const CORS_RULE_ID_START = 9000;
-const CORS_RULE_ID_END = 9299;
+const CORS_RULE_ID_END = 9999;
 const CORS_SUBRESOURCE_TYPES = [
   "sub_frame",
   "stylesheet",
