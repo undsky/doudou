@@ -1079,12 +1079,14 @@
 
       if (res.quality) {
         const quality = document.createElement("span");
-        quality.className = "doudou-smartedu-badge";
+        quality.className =
+          "doudou-smartedu-badge doudou-smartedu-badge-plain";
         quality.textContent = res.quality;
         meta.appendChild(quality);
       }
 
-      const sizeText = formatSize(res.size);
+      // m3u8 的 ti_size 是播放列表文件本身的大小（几 KB），不是视频体积，不展示
+      const sizeText = res.format === "m3u8" ? "" : formatSize(res.size);
       if (sizeText) {
         const size = document.createElement("span");
         size.textContent = sizeText;
@@ -1112,17 +1114,19 @@
     panelEl.className = "doudou-smartedu-panel";
     panelEl.innerHTML = `
       <div class="doudou-smartedu-panel-header">
-        <div class="doudou-smartedu-panel-title">📚 教育资源下载</div>
+        <div>
+          <div class="doudou-smartedu-panel-title">资源下载</div>
+          <div class="doudou-smartedu-panel-subtitle">国家中小学智慧教育平台</div>
+        </div>
         <div class="doudou-smartedu-panel-actions">
           <button class="doudou-smartedu-icon-btn" data-action="refresh" title="重新扫描">⟳</button>
           <button class="doudou-smartedu-icon-btn" data-action="collapse" title="收起">—</button>
         </div>
       </div>
-      <div class="doudou-smartedu-panel-tip">来源：国家中小学智慧教育平台</div>
       <div class="doudou-smartedu-list"></div>
       <div class="doudou-smartedu-panel-footer">
         <span class="doudou-smartedu-count">共 0 个资源</span>
-        <button class="doudou-smartedu-btn" data-action="download-all">全部下载</button>
+        <button class="doudou-smartedu-btn doudou-smartedu-btn-send" data-action="download-all">全部下载</button>
       </div>
     `;
 

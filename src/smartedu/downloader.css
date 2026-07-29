@@ -1,7 +1,25 @@
 /**
  * 教育资源下载助手 - 样式文件 (Doudou)
  * 国家中小学智慧教育平台
+ * 视觉风格与 src/api_debugger 保持一致
  */
+
+/* ==================== 基础 ==================== */
+
+.doudou-smartedu-toast,
+.doudou-smartedu-panel,
+.doudou-smartedu-ball,
+.doudou-smartedu-progress {
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.doudou-smartedu-panel *,
+.doudou-smartedu-ball *,
+.doudou-smartedu-progress * {
+  box-sizing: border-box;
+}
 
 /* ==================== Toast提示 ==================== */
 
@@ -10,15 +28,15 @@
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 24px;
-  background: rgba(0, 0, 0, 0.85);
+  padding: 10px 18px;
+  background: #111827;
   color: #fff;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   z-index: 2147483647;
   animation: doudouSmarteduFade 3s ease;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
   max-width: 70vw;
   text-align: center;
 }
@@ -52,74 +70,80 @@
   max-height: calc(100vh - 140px);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
   z-index: 2147483646;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #333;
+  color: #1f2937;
   overflow: hidden;
 }
 
 .doudou-smartedu-panel-header {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #eef2f7;
 }
 
 .doudou-smartedu-panel-title {
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.doudou-smartedu-panel-subtitle {
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 12px;
 }
 
 .doudou-smartedu-panel-actions {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .doudou-smartedu-icon-btn {
-  border: none;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  width: 26px;
-  height: 26px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  color: #374151;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   line-height: 1;
-  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.2s;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .doudou-smartedu-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.32);
-}
-
-.doudou-smartedu-panel-tip {
-  padding: 8px 14px;
-  font-size: 12px;
-  color: #888;
-  background: #fafafa;
-  border-bottom: 1px solid #eee;
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #d97706;
 }
 
 .doudou-smartedu-list {
   flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 8px;
+  padding: 12px;
 }
 
 .doudou-smartedu-empty {
-  padding: 28px 16px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 18px;
   text-align: center;
   font-size: 13px;
-  color: #999;
+  color: #9ca3af;
   line-height: 1.7;
 }
 
@@ -127,15 +151,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
   padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #eee;
   margin-bottom: 8px;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.doudou-smartedu-item:last-child {
+  margin-bottom: 0;
 }
 
 .doudou-smartedu-item:hover {
-  border-color: #667eea;
+  border-color: #f59e0b;
+  background: #fffbeb;
 }
 
 .doudou-smartedu-item-info {
@@ -145,7 +175,8 @@
 
 .doudou-smartedu-item-title {
   font-size: 13px;
-  color: #333;
+  font-weight: 650;
+  color: #1f2937;
   line-height: 1.4;
   word-break: break-all;
   display: -webkit-box;
@@ -155,9 +186,9 @@
 }
 
 .doudou-smartedu-item-meta {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #999;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -165,28 +196,42 @@
 
 .doudou-smartedu-badge {
   display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #eef0ff;
-  color: #5b6ad0;
+  min-width: 46px;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  text-align: center;
   text-transform: uppercase;
 }
 
+.doudou-smartedu-badge-plain {
+  min-width: 0;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* ==================== 按钮 ==================== */
+
 .doudou-smartedu-btn {
   flex-shrink: 0;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid #1890ff;
+  border-radius: 8px;
+  background: #1890ff;
+  color: #fff;
   padding: 6px 12px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  transition: opacity 0.2s;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .doudou-smartedu-btn:hover {
-  opacity: 0.88;
+  border-color: #40a9ff;
+  background: #40a9ff;
 }
 
 .doudou-smartedu-btn:disabled {
@@ -194,24 +239,44 @@
   opacity: 0.6;
 }
 
-.doudou-smartedu-btn-plain {
-  background: #f2f3f5;
-  color: #555;
+.doudou-smartedu-btn-send {
+  border-color: #f59e0b;
+  background: #f59e0b;
 }
 
+.doudou-smartedu-btn-send:hover {
+  border-color: #d97706;
+  background: #d97706;
+}
+
+.doudou-smartedu-btn-plain {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.doudou-smartedu-btn-plain:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+/* ==================== 底栏 ==================== */
+
 .doudou-smartedu-panel-footer {
-  padding: 10px 14px;
-  border-top: 1px solid #eee;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: #fafafa;
+  padding: 12px;
+  border-top: 1px solid #eef2f7;
+  background: #f9fafb;
 }
 
 .doudou-smartedu-count {
+  color: #6b7280;
   font-size: 12px;
-  color: #888;
+  font-weight: 650;
 }
 
 /* ==================== 收起后的小圆钮 ==================== */
@@ -223,21 +288,20 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  border: 1px solid #d97706;
+  background: #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.32);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 2147483646;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .doudou-smartedu-ball:hover {
-  transform: scale(1.08);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.55);
+  transform: scale(1.06);
+  background: #d97706;
 }
 
 .doudou-smartedu-ball-icon {
@@ -253,13 +317,13 @@
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: #ff5252;
+  background: #ef4444;
   color: #fff;
   font-size: 11px;
+  font-weight: 700;
   line-height: 18px;
   text-align: center;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
 }
 
 /* ==================== 进度条 ==================== */
@@ -268,27 +332,28 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
+  width: 300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   background: #fff;
-  padding: 14px 18px;
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  padding: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
   z-index: 2147483647;
-  width: 280px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #1f2937;
 }
 
 .doudou-smartedu-progress-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
+  color: #1f2937;
   margin-bottom: 10px;
-  color: #333;
   word-break: break-all;
 }
 
 .doudou-smartedu-progress-bar {
   width: 100%;
   height: 6px;
-  background: #e8e8e8;
+  background: #f3f4f6;
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -297,14 +362,14 @@
 .doudou-smartedu-progress-fill {
   height: 100%;
   width: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f59e0b;
   border-radius: 3px;
   transition: width 0.2s ease;
 }
 
 .doudou-smartedu-progress-text {
   font-size: 12px;
-  color: #666;
+  color: #6b7280;
   text-align: center;
 }
 
@@ -313,31 +378,65 @@
 @media (prefers-color-scheme: dark) {
   .doudou-smartedu-panel,
   .doudou-smartedu-progress {
-    background: #2d2d2d;
-    color: #eee;
+    border-color: #374151;
+    background: #111827;
+    color: #e5e7eb;
   }
 
-  .doudou-smartedu-panel-tip,
+  .doudou-smartedu-panel-header,
   .doudou-smartedu-panel-footer {
-    background: #333;
-    border-color: #444;
+    border-color: #374151;
+  }
+
+  .doudou-smartedu-panel-footer {
+    background: #0f172a;
+  }
+
+  .doudou-smartedu-panel-title,
+  .doudou-smartedu-item-title,
+  .doudou-smartedu-progress-title {
+    color: #f3f4f6;
   }
 
   .doudou-smartedu-item {
-    border-color: #444;
+    border-color: #374151;
+    background: #1f2937;
   }
 
-  .doudou-smartedu-item-title,
-  .doudou-smartedu-progress-title {
-    color: #eee;
+  .doudou-smartedu-item:hover {
+    border-color: #f59e0b;
+    background: #292218;
   }
 
+  .doudou-smartedu-empty {
+    border-color: #4b5563;
+  }
+
+  .doudou-smartedu-badge {
+    background: #374151;
+  }
+
+  .doudou-smartedu-badge-plain {
+    background: #1f2937;
+    color: #9ca3af;
+  }
+
+  .doudou-smartedu-icon-btn,
   .doudou-smartedu-btn-plain {
-    background: #444;
-    color: #ddd;
+    border-color: #4b5563;
+    background: #1f2937;
+    color: #e5e7eb;
+  }
+
+  .doudou-smartedu-icon-btn:hover {
+    background: #292218;
+  }
+
+  .doudou-smartedu-btn-plain:hover {
+    background: #374151;
   }
 
   .doudou-smartedu-progress-bar {
-    background: #444;
+    background: #374151;
   }
 }
