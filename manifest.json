@@ -38,12 +38,6 @@
       "js": ["src/floating-btn.js"],
       "run_at": "document_idle",
       "all_frames": true
-    },
-    {
-      "matches": ["https://www.douyin.com/*", "https://*.douyin.com/*"],
-      "js": ["src/douyin/downloader.js"],
-      "css": ["src/douyin/downloader.css"],
-      "run_at": "document_start"
     }
   ],
   "icons": {
@@ -63,15 +57,6 @@
         "md/static/js/highlight-languages/es/languages/*.js"
       ],
       "matches": ["<all_urls>"]
-    },
-    {
-      "resources": [
-        "src/douyin/inject.js"
-      ],
-      "matches": [
-        "https://www.douyin.com/*",
-        "https://*.douyin.com/*"
-      ]
     }
   ],
   "content_security_policy": {

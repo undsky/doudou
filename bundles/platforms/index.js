@@ -30,7 +30,6 @@ import { QianfanPlatform } from './qianfan.js'
 import { AlipayOpenPlatform } from './alipayopen.js'
 import { ModelScopePlatform } from './modelscope.js'
 import { VolcenginePlatform } from './volcengine.js'
-import { DouyinPlatform } from './douyin.js'
 import { XiaohongshuPlatform } from './xiaohongshu.js'
 import { ElecfansPlatform } from './elecfans.js'
 import { DoubanPlatform } from './douban.js'
@@ -64,7 +63,6 @@ const PLATFORMS = [
     AlipayOpenPlatform,
     ModelScopePlatform,
     VolcenginePlatform,
-    DouyinPlatform,
     XiaohongshuPlatform,
     ElecfansPlatform,
     DoubanPlatform,
@@ -99,7 +97,6 @@ function getPlatformFiller(hostname) {
     if (hostname.includes('open.alipay.com')) return 'alipayopen'
     if (hostname.includes('modelscope.cn')) return 'modelscope'
     if (hostname.includes('developer.volcengine.com')) return 'volcengine'
-    if (hostname.includes('creator.douyin.com')) return 'douyin'
     if (hostname.includes('creator.xiaohongshu.com')) return 'xiaohongshu'
     if (hostname.includes('elecfans.com')) return 'elecfans'
     if (hostname.includes('douban.com')) return 'douban'

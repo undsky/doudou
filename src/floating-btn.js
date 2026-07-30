@@ -85,11 +85,6 @@
   const ACTIONS = [
     { id: "clone-article", icon: "📋", label: "AI文章复刻" },
     { id: "screenshot", icon: "📸", label: "页面截图" },
-    {
-      id: "douyin-media-download",
-      icon: `<svg viewBox="0 0 448 512" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/></svg>`,
-      label: "抖音下载",
-    },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
     { id: "summarize-page", icon: "📝", label: "总结页面" },
@@ -1417,16 +1412,6 @@
             if (isContextValid()) {
               chrome.runtime.sendMessage({ type: "DOUDOU_TRANSLATE_PAGE" });
             }
-            return;
-          }
-          if (action.id === "douyin-media-download") {
-            if (!location.hostname.includes("douyin.com")) {
-              alert("此功能仅在抖音网页端可用");
-              return;
-            }
-            window.dispatchEvent(
-              new CustomEvent("DOUDOU_TRIGGER_MEDIA_DOWNLOAD"),
-            );
             return;
           }
           if (action.id === "summarize-page") {

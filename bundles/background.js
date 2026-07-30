@@ -52,27 +52,11 @@ var require_background = __commonJS({
         };
       }
     };
-    const DouyinLoginConfig = {
-      api: "https://creator.douyin.com/web/api/media/user/info/",
-      method: "GET",
-      checkLogin: (response) => {
-        var _a, _b;
-        return (response == null ? void 0 : response.status_code) === 0 && (((_a = response == null ? void 0 : response.user) == null ? void 0 : _a.uid) || ((_b = response == null ? void 0 : response.user_info) == null ? void 0 : _b.uid));
-      },
-      getUserInfo: (response) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
-        return {
-          username: ((_a = response == null ? void 0 : response.user) == null ? void 0 : _a.nickname) || ((_b = response == null ? void 0 : response.user_info) == null ? void 0 : _b.nickname),
-          avatar: ((_e = (_d = (_c = response == null ? void 0 : response.user) == null ? void 0 : _c.avatar_thumb) == null ? void 0 : _d.url_list) == null ? void 0 : _e[0]) || ((_h = (_g = (_f = response == null ? void 0 : response.user_info) == null ? void 0 : _f.avatar_thumb) == null ? void 0 : _g.url_list) == null ? void 0 : _h[0])
-        };
-      }
-    };
     const LOGIN_CHECK_CONFIG = {
       juejin: JuejinLoginConfig,
       zhihu: ZhihuLoginConfig,
       toutiao: ToutiaoLoginConfig,
-      baijiahao: BaijiahaoLoginConfig,
-      douyin: DouyinLoginConfig
+      baijiahao: BaijiahaoLoginConfig
     };
     async function convertAvatarToBase64(avatarUrl, referer) {
       try {
@@ -2773,15 +2757,6 @@ var require_background = __commonJS({
       title: "火山引擎开发者社区",
       type: "volcengine"
     };
-    const DouyinPlatform = {
-      id: "douyin",
-      name: "Douyin",
-      icon: "https://lf3-static.bytednsdoc.com/obj/eden-cn/yvahlyj_upfbvk_zlp/ljhwZthlaukjlkulzlp/pc_creator/favicon_v2_7145ff0.ico",
-      url: "https://creator.douyin.com/",
-      publishUrl: "https://creator.douyin.com/creator-micro/content/post/article?default-tab=5&enter_from=publish_page&media_type=article&type=new",
-      title: "抖音",
-      type: "douyin"
-    };
     const XiaohongshuPlatform = {
       id: "xiaohongshu",
       name: "Xiaohongshu",
@@ -2835,7 +2810,6 @@ var require_background = __commonJS({
       AlipayOpenPlatform,
       ModelScopePlatform,
       VolcenginePlatform,
-      DouyinPlatform,
       XiaohongshuPlatform,
       ElecfansPlatform,
       DoubanPlatform
@@ -3999,100 +3973,6 @@ var require_background = __commonJS({
             world: "MAIN"
           });
           return { success: true, message: "已同步并保存为草稿", tabId: tab.id };
-        }
-        if (platformId === "douyin") {
-          const htmlContent = content.wechatHtml || content.body;
-          console.log("[COSE] 抖音 HTML 内容长度:", (htmlContent == null ? void 0 : htmlContent.length) || 0);
-          console.log("[COSE] 开始注入抖音内容...");
-          let result;
-          try {
-            result = await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: async (title, htmlBody) => {
-                var _a2, _b2, _c2;
-                const waitForElement = (selector, timeout = 1e4) => {
-                  return new Promise((resolve) => {
-                    const el = document.querySelector(selector);
-                    if (el) return resolve(el);
-                    const observer = new MutationObserver(() => {
-                      const el2 = document.querySelector(selector);
-                      if (el2) {
-                        observer.disconnect();
-                        resolve(el2);
-                      }
-                    });
-                    observer.observe(document.body, { childList: true, subtree: true });
-                    setTimeout(() => {
-                      observer.disconnect();
-                      resolve(document.querySelector(selector));
-                    }, timeout);
-                  });
-                };
-                try {
-                  const editor = await waitForElement('[contenteditable="true"]');
-                  if (!editor) {
-                    return { success: false, error: "未找到编辑器" };
-                  }
-                  const titleInput = await waitForElement('input[placeholder*="标题"]');
-                  if (titleInput && title) {
-                    titleInput.focus();
-                    const nativeSetter = (_a2 = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")) == null ? void 0 : _a2.set;
-                    if (nativeSetter) {
-                      nativeSetter.call(titleInput, title);
-                    } else {
-                      titleInput.value = title;
-                    }
-                    titleInput.dispatchEvent(new Event("input", { bubbles: true }));
-                    titleInput.dispatchEvent(new Event("change", { bubbles: true }));
-                    console.log("[COSE] 抖音标题已填充:", title);
-                  }
-                  if (editor && htmlBody) {
-                    editor.focus();
-                    editor.innerHTML = "";
-                    const dt = new DataTransfer();
-                    dt.setData("text/html", htmlBody);
-                    dt.setData("text/plain", htmlBody.replace(/<[^>]*>/g, ""));
-                    const pasteEvent = new ClipboardEvent("paste", {
-                      bubbles: true,
-                      cancelable: true,
-                      clipboardData: dt
-                    });
-                    editor.dispatchEvent(pasteEvent);
-                    console.log("[COSE] 抖音内容已通过 paste 事件注入");
-                    const wordCount = ((_b2 = editor.textContent) == null ? void 0 : _b2.length) || 0;
-                    if (wordCount === 0) {
-                      console.log("[COSE] paste 事件未生效，尝试备用方案");
-                      editor.innerHTML = htmlBody;
-                      editor.dispatchEvent(new Event("input", { bubbles: true }));
-                    }
-                    return {
-                      success: true,
-                      wordCount: ((_c2 = editor.textContent) == null ? void 0 : _c2.length) || 0,
-                      titleFilled: (titleInput == null ? void 0 : titleInput.value) === title
-                    };
-                  }
-                  return { success: false, error: "内容为空" };
-                } catch (err) {
-                  return { success: false, error: err.message };
-                }
-              },
-              args: [content.title, htmlContent],
-              world: "MAIN"
-            });
-          } catch (e) {
-            console.error("[COSE] executeScript 执行失败:", e);
-            return { success: false, message: "脚本执行失败: " + e.message, tabId: tab.id };
-          }
-          console.log("[COSE] 抖音填充结果:", JSON.stringify(result, null, 2));
-          if (!result || result.length === 0) {
-            return { success: false, message: "脚本执行失败：无返回值", tabId: tab.id };
-          }
-          const fillResult = result[0].result;
-          if (!(fillResult == null ? void 0 : fillResult.success)) {
-            return { success: false, message: (fillResult == null ? void 0 : fillResult.error) || "内容填充失败", tabId: tab.id };
-          }
-          console.log("[COSE] 抖音内容填充成功，字数:", fillResult.wordCount);
-          return { success: true, message: "已同步到抖音", tabId: tab.id };
         }
         if (platformId === "sohu") {
           await new Promise((resolve) => setTimeout(resolve, 3e3));
