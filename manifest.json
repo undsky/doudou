@@ -44,12 +44,6 @@
       "js": ["src/douyin/downloader.js"],
       "css": ["src/douyin/downloader.css"],
       "run_at": "document_start"
-    },
-    {
-      "matches": ["https://*.smartedu.cn/*"],
-      "js": ["src/smartedu/downloader.js"],
-      "css": ["src/smartedu/downloader.css"],
-      "run_at": "document_start"
     }
   ],
   "icons": {
@@ -77,14 +71,6 @@
       "matches": [
         "https://www.douyin.com/*",
         "https://*.douyin.com/*"
-      ]
-    },
-    {
-      "resources": [
-        "src/smartedu/inject.js"
-      ],
-      "matches": [
-        "https://*.smartedu.cn/*"
       ]
     }
   ],
