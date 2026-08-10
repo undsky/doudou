@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await ensureCorsEnabled();
         chrome.tabs.create({
-          url: "https://undsky.com/doudou_canvas",
+          url: "https://newapi.undsky.com/doudou_canvas.html",
         });
       } catch (error) {
         showToast("开启 CORS 失败: " + error.message, "error");

@@ -4,7 +4,7 @@
 
 - [访问官网](https://www.undsky.com/doudou)
 
-- [AI 画布](https://undsky.com/doudou_canvas)
+- [AI 画布](https://newapi.undsky.com/doudou_canvas.html)
 
 豆豆是一款面向自媒体创作者的 Chrome 扩展工具，集成文章采集创作、图片/视频处理、AI 画布、极客工具等能力，帮助创作者从选题、采集、创作、处理素材到多平台分发，完成一站式内容生产流程，让任何人都能够在自己的赛道上持续创作！
 
