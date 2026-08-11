@@ -567,9 +567,7 @@ async function startCollect(groupIndex) {
 
           await chrome.storage.local.set({ pending_post_import: newPost });
           chrome.tabs.create({
-            url: chrome.runtime.getURL(
-              "md/index.html?source=background_import",
-            ),
+            url: "https://md.undsky.com",
           });
 
           log("AI 文章生成成功，已打开编辑器", "success");

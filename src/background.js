@@ -47,9 +47,8 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "OPEN_TAB",
 ]);
 
-// 消息监听 - 豆豆优先处理
+// 消息监听
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // 豆豆消息类型由豆豆处理
   if (DOUDOU_MESSAGE_TYPES.has(request.type)) {
     (async () => {
       try {
@@ -62,12 +61,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
     return true; // 表示异步响应
   }
-  // 非豆豆消息类型，不处理，让 COSE 处理
   return false;
 });
-
-// COSE 多平台文章同步 - 在豆豆监听器注册后导入
-import "../bundles/background.js";
 
 // Side Panel 状态追踪
 let sidePanelPort = null;
@@ -675,7 +670,7 @@ async function getPageMarkdown(tabId) {
   try {
     await chrome.scripting.executeScript({
       target: { tabId, allFrames: true },
-      files: ["md/static/js/turndown.js", "src/utils/turndown-rules.js"],
+      files: ["lib/turndown.js", "src/utils/turndown-rules.js"],
     });
   } catch (err) {
     console.error("[豆豆] 注入 turndown 报错(可能部分 frame 被拦截):", err);
@@ -1082,7 +1077,7 @@ async function handleArticleReplication(data, tabId, frameId = 0) {
     // 1. 注入 Turndown 工具和通用规则
     await chrome.scripting.executeScript({
       target,
-      files: ["md/static/js/turndown.js", "src/utils/turndown-rules.js"],
+      files: ["lib/turndown.js", "src/utils/turndown-rules.js"],
     });
 
     // 2. 获取页面内容并转换为 Markdown
@@ -1265,7 +1260,7 @@ async function handleArticleReplication(data, tabId, frameId = 0) {
     });
 
     chrome.tabs.create({
-      url: chrome.runtime.getURL("md/index.html?source=background_import"),
+      url: "https://md.undsky.com",
     });
 
     return { success: true };

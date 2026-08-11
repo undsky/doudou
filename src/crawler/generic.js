@@ -419,7 +419,7 @@ export async function collectFromRule(
 
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["md/static/js/turndown.js", "src/utils/turndown-rules.js"],
+      files: ["lib/turndown.js", "src/utils/turndown-rules.js"],
     });
 
     let detail = null;
@@ -682,7 +682,7 @@ export async function collectFromRule(
         onLog(`正在提取内容...`, "info");
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["md/static/js/turndown.js", "src/utils/turndown-rules.js"],
+          files: ["lib/turndown.js", "src/utils/turndown-rules.js"],
         });
 
         let detail = null;

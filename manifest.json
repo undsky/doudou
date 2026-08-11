@@ -5,7 +5,6 @@
   "description": "人人都能做自媒体",
   "permissions": [
     "storage",
-    "tabGroups",
     "scripting",
     "cookies",
     "debugger",
@@ -13,7 +12,6 @@
     "clipboardRead",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "offscreen",
     "sidePanel",
     "tabs",
     "contextMenus"
@@ -51,10 +49,7 @@
         "icons/*",
         "src/crawler-selector.js",
         "src/image_text/*",
-        "bundles/inject.js",
-        "bundles/platforms/*.js",
-        "src/ai/openai.js",
-        "md/static/js/highlight-languages/es/languages/*.js"
+        "src/ai/openai.js"
       ],
       "matches": ["<all_urls>"]
     }
