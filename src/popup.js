@@ -1,5 +1,4 @@
 import { showToast } from "./utils/ui.js";
-import { setCrawlerAutoConfirmTrue } from "./utils/inject-helpers.js";
 
 const DEFAULT_CORS_EFFECTIVE_URLS = ["undsky.com"];
 
@@ -25,7 +24,6 @@ const DEFAULT_CORS_CONFIG = {
 
 document.addEventListener("DOMContentLoaded", () => {
   const createArticleBtn = document.getElementById("create-article");
-  const cloneArticleBtn = document.getElementById("clone-article");
   const settingsBtn = document.getElementById("settings");
 
   if (createArticleBtn) {
@@ -34,10 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
         url: "https://md.undsky.com",
       });
     });
-  }
-
-  if (cloneArticleBtn) {
-    cloneArticleBtn.addEventListener("click", handleCloneArticle);
   }
 
   if (settingsBtn) {
@@ -165,15 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // AI图文创作
-  const createImageTextBtn = document.getElementById("create-image-text");
-  if (createImageTextBtn) {
-    createImageTextBtn.addEventListener("click", () => {
-      chrome.tabs.create({
-        url: "src/image_text/index.html",
-      });
-    });
-  }
 
   // 页面截图 - 子菜单
   const pageScreenshotBtn = document.getElementById("page-screenshot");
@@ -623,62 +608,3 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
-
-/**
- * 处理文章复刻
- */
-async function handleCloneArticle() {
-  try {
-    // 检查是否配置了 OpenAI（兼容多配置 openaiConfigs 与单配置 openaiConfig）
-    const { openaiConfigs, openaiConfig } = await chrome.storage.sync.get([
-      "openaiConfigs",
-      "openaiConfig",
-    ]);
-    const config =
-      openaiConfigs && openaiConfigs.length > 0
-        ? openaiConfigs[0]
-        : openaiConfig;
-
-    if (!config?.openaiApiKey) {
-      showToast("请先在「设置」页面配置 OpenAI API Key", "error");
-      return;
-    }
-
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    const url = tab.url || "";
-    if (
-      url.startsWith("chrome://") ||
-      url.startsWith("chrome-extension://") ||
-      url.startsWith("edge://") ||
-      url.startsWith("about:") ||
-      url.startsWith("file://") ||
-      !url.startsWith("http")
-    ) {
-      showToast("无法在此页面使用文章复刻，请在普通网页上使用", "error");
-      return;
-    }
-
-    // Inject selector script
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id, allFrames: true },
-      func: setCrawlerAutoConfirmTrue,
-    });
-
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id, allFrames: true },
-      files: ["src/crawler-selector.js"],
-    });
-
-    // Mark that we are in replication mode
-    await chrome.storage.local.set({ selector_mode: "article_replication" });
-
-    showToast("请在页面上选择要复刻的内容区域");
-    window.close();
-  } catch (error) {
-    showToast(error.message, "error");
-  }
-}

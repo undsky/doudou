@@ -47,8 +47,6 @@
     {
       "resources": [
         "icons/*",
-        "src/crawler-selector.js",
-        "src/image_text/*",
         "src/ai/openai.js"
       ],
       "matches": ["<all_urls>"]

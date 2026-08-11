@@ -83,7 +83,6 @@
   });
 
   const ACTIONS = [
-    { id: "clone-article", icon: "📋", label: "AI文章复刻" },
     { id: "screenshot", icon: "📸", label: "页面截图" },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
