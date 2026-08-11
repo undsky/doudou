@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (createArticleBtn) {
     createArticleBtn.addEventListener("click", () => {
       chrome.tabs.create({
-        url: "md/index.html",
+        url: "https://md.undsky.com",
       });
     });
   }
