@@ -215,7 +215,17 @@
       #doudou-floating-btn .doudou-sub-item:hover {
         background-color: #f0f0f0;
       }
+    `;
+    document.head.appendChild(style);
+  }
 
+  // 选择弹窗 / toast / 高亮的样式：与悬浮球解耦，所有 frame 都需要，
+  // 且不会随悬浮球关闭而被移除。
+  function injectSharedStyles() {
+    if (document.getElementById("doudou-shared-style")) return;
+    const style = document.createElement("style");
+    style.id = "doudou-shared-style";
+    style.textContent = `
       /* --- 翻译 toast --- */
       #doudou-translate-toast {
         position: fixed;
@@ -700,6 +710,7 @@
       return;
     }
     clearToastTimer();
+    injectSharedStyles();
     document.getElementById("doudou-translate-toast")?.remove();
     const toast = document.createElement("div");
     toast.id = "doudou-translate-toast";
@@ -963,19 +974,59 @@
   }
 
   // ========== 选择翻译弹窗 ==========
+  const BAR_GAP = 8; // 弹窗与锚点之间的间距
+  const BAR_EDGE = 4; // 弹窗与视口边缘的最小间距
+
+  // 取选区中「鼠标松开所在的那一行」的行框。
+  // 不能用 range.getBoundingClientRect()：多行选区的并集矩形宽度接近整个正文列宽，
+  // 用它居中会让弹窗横向偏离鼠标几百像素。
+  function getSelectionLineRect(range, point) {
+    const lines = Array.from(range.getClientRects()).filter(
+      (r) => r.width > 0 || r.height > 0,
+    );
+    if (!lines.length) return range.getBoundingClientRect();
+    if (point) {
+      const hit = lines.find(
+        (r) => point.y >= r.top - 2 && point.y <= r.bottom + 2,
+      );
+      if (hit) return hit;
+    }
+    // 没有鼠标位置（或鼠标不在任何行框内）：取视觉上最后一行
+    return lines.reduce((a, b) =>
+      b.bottom > a.bottom || (b.bottom === a.bottom && b.right > a.right) ? b : a,
+    );
+  }
+
+  // 归一化出定位锚点 {x, top, bottom}：
+  // x 是弹窗的横向中心，top/bottom 是纵向需要避让的区间。
+  // 有鼠标坐标时以鼠标为准（弹窗跟着鼠标出现），同时把行框并进避让区间，
+  // 这样弹窗既贴着鼠标又不会压住选中的文字。
+  function makeSelectionAnchor(rect, point) {
+    if (point) {
+      return {
+        x: point.x,
+        top: rect ? Math.min(rect.top, point.y) : point.y,
+        bottom: rect ? Math.max(rect.bottom, point.y) : point.y,
+      };
+    }
+    return { x: rect.left + rect.width / 2, top: rect.top, bottom: rect.bottom };
+  }
+
   // overrideRect: 可选，从 iframe postMessage 传递来的主框架坐标系下的 rect
   // overrideText: 可选，从 iframe 传递来的选中文本
-  function showSelectionBar(selection, overrideRect, overrideText) {
+  // point: 可选，鼠标松开处的视口坐标 {x, y}，用于把弹窗定位到鼠标处
+  function showSelectionBar(selection, overrideRect, overrideText, point) {
     removeSelectionBar();
-    let rect, selectedText, selectedRange;
+    injectSharedStyles();
+    let anchor, selectedText, selectedRange;
     if (overrideRect && overrideText) {
       // 从 iframe 传递过来的信息，selection 可能为 null
-      rect = overrideRect;
+      anchor = makeSelectionAnchor(overrideRect, point);
       selectedText = overrideText;
       selectedRange = null; // iframe 中的选区无法在主框架中直接使用
     } else {
       const range = selection.getRangeAt(0);
-      rect = range.getBoundingClientRect();
+      anchor = makeSelectionAnchor(getSelectionLineRect(range, point), point);
       selectedText = selection.toString().trim();
       selectedRange = range.cloneRange();
     }
@@ -1031,16 +1082,27 @@
 
     document.body.appendChild(bar);
 
-    // 定位到选区下方居中
+    // 定位：横向以鼠标为中心，纵向优先放在锚点下方
     const barRect = bar.getBoundingClientRect();
-    let left = rect.left + rect.width / 2 - barRect.width / 2;
-    let top = rect.bottom + 6;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-    // 边界约束
-    left = Math.max(4, Math.min(left, window.innerWidth - barRect.width - 4));
-    if (top + barRect.height > window.innerHeight - 4) {
-      top = rect.top - barRect.height - 6;
+    let top = anchor.bottom + BAR_GAP;
+    if (top + barRect.height > vh - BAR_EDGE) {
+      // 下方放不下：只有上方真的放得下才翻上去，否则留在下方交给钳制处理，
+      // 避免两边都放不下时反复跳到更差的位置
+      const above = anchor.top - barRect.height - BAR_GAP;
+      if (above >= BAR_EDGE) top = above;
     }
+
+    // 边界约束：横纵两个方向都要钳制。
+    // 选区/鼠标位于视口外（拖选时页面自动滚动、选区跨越视口等）时坐标可能为负，
+    // 不钳制下界弹窗会完全跑到视口外看不见。
+    const left = Math.max(
+      BAR_EDGE,
+      Math.min(anchor.x - barRect.width / 2, vw - barRect.width - BAR_EDGE),
+    );
+    top = Math.max(BAR_EDGE, Math.min(top, vh - barRect.height - BAR_EDGE));
 
     bar.style.left = left + "px";
     bar.style.top = top + "px";
@@ -1481,15 +1543,17 @@
       )
     )
       return;
+    // 记录鼠标松开处的视口坐标，用于把弹窗定位到贴近鼠标的位置
+    const point = { x: e.clientX, y: e.clientY };
     setTimeout(() => {
       const selection = window.getSelection();
       const text = selection?.toString().trim();
       if (text && text.length > 0) {
         if (window !== window.top) {
           // 在 iframe 中：先在本地显示弹窗（保底），同时向 parent 发送坐标
-          showSelectionBar(selection);
+          showSelectionBar(selection, null, null, point);
           const range = selection.getRangeAt(0);
-          const rect = range.getBoundingClientRect();
+          const rect = getSelectionLineRect(range, point);
           try {
             window.parent.postMessage(
               {
@@ -1503,12 +1567,13 @@
                   width: rect.width,
                   height: rect.height,
                 },
+                point: point,
               },
               "*",
             );
           } catch (err) {}
         } else {
-          showSelectionBar(selection);
+          showSelectionBar(selection, null, null, point);
         }
       } else {
         removeSelectionBar();
@@ -1552,10 +1617,17 @@
         width: e.data.rect.width,
         height: e.data.rect.height,
       };
+      // 鼠标坐标同样需要逐级转换
+      const adjustedPoint = e.data.point
+        ? {
+            x: e.data.point.x + iframeRect.left,
+            y: e.data.point.y + iframeRect.top,
+          }
+        : null;
 
       if (window === window.top) {
         // 已到顶层：在此显示弹窗
-        showSelectionBar(null, adjustedRect, e.data.text);
+        showSelectionBar(null, adjustedRect, e.data.text, adjustedPoint);
         // 通知源 iframe 链移除它们的弹窗
         try {
           e.source.postMessage({ type: "DOUDOU_IFRAME_SELECTION_TAKEN" }, "*");
@@ -1568,6 +1640,7 @@
               type: "DOUDOU_IFRAME_SELECTION",
               text: e.data.text,
               rect: adjustedRect,
+              point: adjustedPoint,
             },
             "*",
           );
@@ -1615,6 +1688,9 @@
 
   // ========== 初始化 ==========
   if (!isContextValid()) return;
+
+  // 选择弹窗 / toast 在每个 frame 都可能出现，且与悬浮球是否显示无关
+  injectSharedStyles();
 
   // 监听来自 background 的全页面/跨 iframe 翻译指令
   document.addEventListener("DOUDOU_TRANSLATE_PAGE", () => {
