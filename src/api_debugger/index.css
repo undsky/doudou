@@ -381,6 +381,122 @@ textarea {
   align-items: center;
 }
 
+.kv-row-form-data {
+  display: grid;
+  grid-template-columns: 28px minmax(100px, 1fr) 78px minmax(140px, 1.4fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+
+.kv-type-select {
+  height: 35px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kv-type-select:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.kv-value-container {
+  min-width: 0;
+  display: flex;
+}
+
+.kv-value-container input[type="text"] {
+  width: 100%;
+}
+
+.kv-file-control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 35px;
+  padding: 4px 8px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fdfdfd;
+  min-width: 0;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.kv-file-control:hover,
+.kv-file-control.dragover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.kv-file-control.has-file {
+  border-style: solid;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.btn-file-select {
+  flex: none;
+  padding: 3px 8px;
+  font-size: 12px;
+  height: 25px;
+  line-height: 1;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-file-select:hover {
+  background: #f3f4f6;
+}
+
+.kv-file-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv-file-control.has-file .kv-file-info {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.kv-file-remove {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+}
+
+.kv-file-remove:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .kv-row input[type="checkbox"] {
   width: 16px;
   height: 16px;

@@ -47,6 +47,13 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function formatFileSize(bytes) {
+  if (typeof bytes !== "number" || isNaN(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 function createDefaultInterface(seed = {}) {
   return {
     id: createId(),
@@ -59,7 +66,7 @@ function createDefaultInterface(seed = {}) {
     bodyType: "none",
     rawFormat: "json",
     rawBody: "",
-    formData: [{ enabled: true, key: "", value: "" }],
+    formData: [{ enabled: true, type: "text", key: "", value: "", file: null }],
     ...seed,
   };
 }
@@ -166,7 +173,7 @@ function normalizeInterface(api) {
     rawFormat: ["json", "text"].includes(api.rawFormat) ? api.rawFormat : "json",
     headers: normalizeRows(api.headers),
     query: normalizeRows(api.query),
-    formData: normalizeRows(api.formData),
+    formData: normalizeFormDataRows(api.formData),
   });
   normalized.name = typeof normalized.name === "string" ? normalized.name : "新接口";
   normalized.url = typeof normalized.url === "string" ? normalized.url : "";
@@ -185,10 +192,32 @@ function normalizeRows(rows) {
   }));
 }
 
+function normalizeFormDataRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return [{ enabled: true, type: "text", key: "", value: "", file: null }];
+  }
+  return rows.map((row) => ({
+    enabled: row.enabled !== false,
+    type: row.type === "file" ? "file" : "text",
+    key: row.key || "",
+    value: row.value || "",
+    file: row.file instanceof File ? row.file : null,
+  }));
+}
+
 function saveInterfaces() {
+  const serializableInterfaces = state.interfaces.map((api) => ({
+    ...api,
+    formData: api.formData.map((row) => ({
+      enabled: row.enabled,
+      type: row.type === "file" ? "file" : "text",
+      key: row.key || "",
+      value: row.value || (row.file ? row.file.name : ""),
+    })),
+  }));
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ interfaces: state.interfaces, activeId: state.activeId }),
+    JSON.stringify({ interfaces: serializableInterfaces, activeId: state.activeId }),
   );
 }
 
@@ -342,7 +371,7 @@ function renderRequestEditor() {
   renderBodyMode();
   renderKvTable(dom.headersTable, api.headers, () => saveInterfaces());
   renderKvTable(dom.queryTable, api.query, () => saveInterfaces());
-  renderKvTable(dom.formDataTable, api.formData, () => saveInterfaces());
+  renderFormDataTable(dom.formDataTable, api.formData, () => saveInterfaces());
 }
 
 function renderRequestTabs() {
@@ -412,6 +441,179 @@ function renderKvTable(container, rows, onChange) {
   });
 }
 
+function renderFormDataTable(container, rows, onChange) {
+  container.textContent = "";
+
+  rows.forEach((row, index) => {
+    const line = document.createElement("div");
+    line.className = "kv-row kv-row-form-data";
+
+    const enabled = document.createElement("input");
+    enabled.type = "checkbox";
+    enabled.checked = row.enabled;
+    enabled.setAttribute("aria-label", "启用字段");
+    enabled.addEventListener("change", () => {
+      row.enabled = enabled.checked;
+      onChange();
+    });
+
+    const key = document.createElement("input");
+    key.type = "text";
+    key.placeholder = "参数名";
+    key.value = row.key;
+    key.setAttribute("aria-label", "Form Data 参数名");
+    key.addEventListener("input", () => {
+      row.key = key.value;
+      onChange();
+    });
+
+    const typeSelect = document.createElement("select");
+    typeSelect.className = "kv-type-select";
+    typeSelect.setAttribute("aria-label", "参数类型");
+
+    const optText = document.createElement("option");
+    optText.value = "text";
+    optText.textContent = "Text";
+    const optFile = document.createElement("option");
+    optFile.value = "file";
+    optFile.textContent = "File";
+    typeSelect.append(optText, optFile);
+    typeSelect.value = row.type === "file" ? "file" : "text";
+
+    const valueContainer = document.createElement("div");
+    valueContainer.className = "kv-value-container";
+
+    function updateValueControl() {
+      valueContainer.textContent = "";
+      if (row.type === "file") {
+        const fileWrapper = document.createElement("div");
+        fileWrapper.className = `kv-file-control${row.file ? " has-file" : ""}`;
+
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.className = "kv-file-hidden-input";
+        fileInput.hidden = true;
+
+        const chooseBtn = document.createElement("button");
+        chooseBtn.type = "button";
+        chooseBtn.className = "btn btn-file-select";
+        chooseBtn.textContent = "选择文件";
+
+        const fileInfo = document.createElement("span");
+        fileInfo.className = "kv-file-info";
+
+        if (row.file) {
+          fileInfo.textContent = `${row.file.name} (${formatFileSize(row.file.size)})`;
+          fileInfo.title = `${row.file.name} (${row.file.size} bytes)`;
+        } else if (row.value) {
+          fileInfo.textContent = `${row.value} (待重新选择)`;
+          fileInfo.title = `上次记录的文件名: ${row.value}，请点击重新选择文件`;
+        } else {
+          fileInfo.textContent = "未选择文件";
+          fileInfo.title = "点击或拖拽文件到此处";
+        }
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "kv-file-remove";
+        removeBtn.textContent = "×";
+        removeBtn.title = "清除文件";
+        removeBtn.hidden = !row.file && !row.value;
+
+        const triggerSelect = () => fileInput.click();
+        chooseBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          triggerSelect();
+        });
+        fileWrapper.addEventListener("click", (event) => {
+          if (event.target === removeBtn) return;
+          triggerSelect();
+        });
+
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files && fileInput.files[0]) {
+            row.file = fileInput.files[0];
+            row.value = row.file.name;
+            onChange();
+            renderFormDataTable(container, rows, onChange);
+          }
+        });
+
+        removeBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          row.file = null;
+          row.value = "";
+          fileInput.value = "";
+          onChange();
+          renderFormDataTable(container, rows, onChange);
+        });
+
+        fileWrapper.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          fileWrapper.classList.add("dragover");
+        });
+        fileWrapper.addEventListener("dragleave", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          fileWrapper.classList.remove("dragover");
+        });
+        fileWrapper.addEventListener("drop", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          fileWrapper.classList.remove("dragover");
+          if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+            row.file = event.dataTransfer.files[0];
+            row.value = row.file.name;
+            onChange();
+            renderFormDataTable(container, rows, onChange);
+          }
+        });
+
+        fileWrapper.append(fileInput, chooseBtn, fileInfo, removeBtn);
+        valueContainer.appendChild(fileWrapper);
+      } else {
+        const textInput = document.createElement("input");
+        textInput.type = "text";
+        textInput.placeholder = "参数值";
+        textInput.value = row.value || "";
+        textInput.setAttribute("aria-label", "Form Data 参数值");
+        textInput.addEventListener("input", () => {
+          row.value = textInput.value;
+          onChange();
+        });
+        valueContainer.appendChild(textInput);
+      }
+    }
+
+    typeSelect.addEventListener("change", () => {
+      row.type = typeSelect.value;
+      if (row.type === "file") {
+        if (!row.file) row.value = "";
+      }
+      onChange();
+      updateValueControl();
+    });
+
+    updateValueControl();
+
+    const del = document.createElement("button");
+    del.className = "kv-delete";
+    del.type = "button";
+    del.textContent = "×";
+    del.title = "删除字段";
+    del.addEventListener("click", () => {
+      rows.splice(index, 1);
+      if (!rows.length) rows.push({ enabled: true, type: "text", key: "", value: "", file: null });
+      onChange();
+      renderRequestEditor();
+    });
+
+    line.append(enabled, key, typeSelect, valueContainer, del);
+    container.appendChild(line);
+  });
+}
+
 function bindEvents() {
   dom.addInterfaceButton.addEventListener("click", () => addInterface());
   dom.importJsonButton.addEventListener("click", () => dom.importJsonFile.click());
@@ -468,7 +670,11 @@ function bindEvents() {
 function addRow(key) {
   const api = getActiveInterface();
   if (!api) return;
-  api[key].push({ enabled: true, key: "", value: "" });
+  if (key === "formData") {
+    api.formData.push({ enabled: true, type: "text", key: "", value: "", file: null });
+  } else {
+    api[key].push({ enabled: true, key: "", value: "" });
+  }
   saveInterfaces();
   renderRequestEditor();
 }
@@ -638,6 +844,12 @@ function parseCurl(command) {
       applyCurlData(api, next(), methodExplicit);
     } else if (token.startsWith("--data=") || token.startsWith("--data-raw=")) {
       applyCurlData(api, token.slice(token.indexOf("=") + 1), methodExplicit);
+    } else if (token === "-F" || token === "--form") {
+      applyCurlForm(api, next(), methodExplicit);
+    } else if (token.startsWith("-F") && token.length > 2) {
+      applyCurlForm(api, token.slice(2), methodExplicit);
+    } else if (token.startsWith("--form=")) {
+      applyCurlForm(api, token.slice(token.indexOf("=") + 1), methodExplicit);
     } else if (token === "--url") {
       api.url = next();
     } else if (token.startsWith("http://") || token.startsWith("https://")) {
@@ -648,7 +860,7 @@ function parseCurl(command) {
   if (!api.url) throw new Error("未识别到请求 URL");
   if (!api.headers.length) api.headers.push({ enabled: true, key: "", value: "" });
   if (!api.query.length) api.query.push({ enabled: true, key: "", value: "" });
-  if (!api.formData.length) api.formData.push({ enabled: true, key: "", value: "" });
+  if (!api.formData.length) api.formData.push({ enabled: true, type: "text", key: "", value: "", file: null });
   api.name = deriveInterfaceName(api);
   return api;
 }
@@ -668,6 +880,27 @@ function applyCurlData(api, data, methodExplicit) {
   api.bodyType = "raw";
   api.rawBody = data;
   api.rawFormat = canParseJson(data) ? "json" : "text";
+}
+
+function applyCurlForm(api, formText, methodExplicit) {
+  if (!methodExplicit) api.method = "POST";
+  api.bodyType = "form-data";
+  const equalIndex = formText.indexOf("=");
+  if (equalIndex <= 0) return;
+  const key = formText.slice(0, equalIndex).trim();
+  let value = formText.slice(equalIndex + 1).trim();
+  let type = "text";
+  if (value.startsWith("@")) {
+    type = "file";
+    value = value.slice(1);
+  }
+  api.formData.push({
+    enabled: true,
+    type,
+    key,
+    value,
+    file: null,
+  });
 }
 
 function sanitizeText(text) {
@@ -732,7 +965,18 @@ function buildRequestBody(api, headers) {
     headers.delete("Content-Type");
     const formData = new FormData();
     for (const row of api.formData) {
-      if (row.enabled && row.key.trim()) formData.append(row.key.trim(), row.value);
+      if (row.enabled && row.key.trim()) {
+        const key = row.key.trim();
+        if (row.type === "file") {
+          if (row.file instanceof File) {
+            formData.append(key, row.file, row.file.name);
+          } else if (row.file instanceof Blob) {
+            formData.append(key, row.file, row.value || "file");
+          }
+        } else {
+          formData.append(key, row.value || "");
+        }
+      }
     }
     return formData;
   }
@@ -982,7 +1226,17 @@ function buildActualRequestPreview(api, finalUrl, headers, body, skipped) {
   if (body === undefined) {
     lines.push("(无)");
   } else if (body instanceof FormData) {
-    for (const [key, value] of body.entries()) lines.push(`${key}=${value}`);
+    let hasField = false;
+    for (const [key, value] of body.entries()) {
+      hasField = true;
+      if (value instanceof File) {
+        const sizeText = formatFileSize(value.size);
+        lines.push(`${key}=[文件: ${value.name} (${sizeText}, ${value.type || "application/octet-stream"})]`);
+      } else {
+        lines.push(`${key}=${value}`);
+      }
+    }
+    if (!hasField) lines.push("(空 FormData)");
   } else {
     lines.push(String(body));
   }
