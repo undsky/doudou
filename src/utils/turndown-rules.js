@@ -67,7 +67,11 @@ function addTurndownRules(parser) {
   });
 }
 
-// 支持 ES Module 导出
+// 支持 ES Module 导出与全局挂载
+if (typeof window !== 'undefined') {
+  window.addTurndownRules = addTurndownRules;
+}
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { addTurndownRules };
 }
+

@@ -607,4 +607,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 选取元素下载为 Markdown
+  const inspectDownloadMdBtn = document.getElementById("inspect-download-md");
+  if (inspectDownloadMdBtn) {
+    inspectDownloadMdBtn.addEventListener("click", async () => {
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+
+        const url = tab?.url || "";
+        if (!url.startsWith("http")) {
+          showToast("无法在此页面选取元素，请在普通网页上使用", "error");
+          return;
+        }
+
+        const res = await chrome.runtime.sendMessage({
+          type: "DOUDOU_BTN_ACTION",
+          action: "inspect-markdown",
+          tab: { id: tab.id, url: tab.url },
+        });
+
+        if (res && res.error) {
+          showToast("启动元素选取失败: " + res.error, "error");
+          return;
+        }
+
+        // 成功触发后关闭 popup 弹窗，方便用户直接操作页面
+        window.close();
+      } catch (error) {
+        console.error("[豆豆] 启动元素选取失败:", error);
+        showToast("启动元素选取失败: " + error.message, "error");
+      }
+    });
+  }
+
 });
+

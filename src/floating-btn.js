@@ -84,6 +84,7 @@
 
   const ACTIONS = [
     { id: "screenshot", icon: "📸", label: "页面截图" },
+    { id: "inspect-markdown", icon: "🎯", label: "页面转MD" },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
     { id: "summarize-page", icon: "📝", label: "总结页面" },

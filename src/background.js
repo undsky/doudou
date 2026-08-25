@@ -865,6 +865,22 @@ async function handleDoudouBtnAction(action, tab) {
       return { success: true };
     }
 
+    case "inspect-markdown": {
+      const pageUrl = tab.url || "";
+      if (!pageUrl.startsWith("http"))
+        return { error: "无法在此页面选取元素" };
+
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: [
+          "lib/turndown.js",
+          "src/utils/turndown-rules.js",
+          "src/utils/element-picker.js",
+        ],
+      });
+      return { success: true };
+    }
+
     default:
       return { error: "未知操作" };
   }
