@@ -39,11 +39,11 @@
   }
 
   const ACTIONS = [
+    { id: "translate", icon: "🌐", label: "翻译" },
     { id: "screenshot", icon: "📸", label: "页面截图" },
     { id: "inspect-markdown", icon: "🎯", label: "页面转MD" },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
-    { id: "translate", icon: "🌐", label: "翻译" },
   ];
 
   // ========== 样式 ==========
