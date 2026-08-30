@@ -12,7 +12,6 @@
     "clipboardRead",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "sidePanel",
     "tabs",
     "contextMenus"
   ],
@@ -53,8 +52,5 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; img-src * data: blob: filesystem:;"
-  },
-  "side_panel": {
-    "default_path": "src/sidepanel.html"
   }
 }

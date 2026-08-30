@@ -38,56 +38,11 @@
     }
   }
 
-  function isDoudouCanvasPage() {
-    return (
-      location.pathname.endsWith("/doudou_canvas.html") ||
-      (!!document.getElementById("add-script-node") &&
-        !!document.getElementById("canvas-container"))
-    );
-  }
-
-  function postCanvasSidePanelResponse(requestId, payload) {
-    window.postMessage(
-      {
-        type: "DOUDOU_OPEN_SIDE_PANEL_RESPONSE",
-        requestId,
-        source: "doudou-extension",
-        ...payload,
-      },
-      "*",
-    );
-  }
-
-  window.addEventListener("message", (event) => {
-    if (event.source !== window) return;
-    if (event.data?.type !== "DOUDOU_OPEN_SIDE_PANEL_REQUEST") return;
-    if (event.data?.source !== "doudou-canvas") return;
-    if (!isDoudouCanvasPage()) return;
-
-    const { requestId } = event.data;
-    if (!isContextValid()) {
-      postCanvasSidePanelResponse(requestId, {
-        success: false,
-        error: "扩展上下文不可用，请刷新页面后重试",
-      });
-      return;
-    }
-
-    chrome.runtime.sendMessage({ type: "OPEN_SIDE_PANEL" }, (response) => {
-      const runtimeError = chrome.runtime.lastError;
-      postCanvasSidePanelResponse(requestId, {
-        success: !!response?.success && !runtimeError,
-        error: runtimeError?.message || response?.error || "打开豆豆侧边栏失败",
-      });
-    });
-  });
-
   const ACTIONS = [
     { id: "screenshot", icon: "📸", label: "页面截图" },
     { id: "inspect-markdown", icon: "🎯", label: "页面转MD" },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
-    { id: "summarize-page", icon: "📝", label: "总结页面" },
     { id: "translate", icon: "🌐", label: "翻译" },
   ];
 
@@ -310,8 +265,8 @@
     };
   }
 
-  // ========== 截图选区（供 Side Panel 和 Popup 调用） ==========
-  function showSelectionOverlay(fullScreenshot, mode = "sidepanel") {
+  // ========== 截图选区（供 Popup 和浮窗按钮调用） ==========
+  function showSelectionOverlay(fullScreenshot) {
     // 强制清理可能残留或并发生成的旧图层
     document
       .querySelectorAll("#doudou-screenshot-overlay")
@@ -641,21 +596,12 @@
           cleanup();
 
           if (isContextValid()) {
-            if (mode === "download") {
-              chrome.runtime.sendMessage({
-                type: "DOWNLOAD_SCREENSHOT",
-                data: cropped,
-              }, () => {
-                void chrome.runtime.lastError;
-              });
-            } else {
-              chrome.runtime.sendMessage({
-                type: "SCREENSHOT_RESULT",
-                data: cropped,
-              }, () => {
-                void chrome.runtime.lastError;
-              });
-            }
+            chrome.runtime.sendMessage({
+              type: "DOWNLOAD_SCREENSHOT",
+              data: cropped,
+            }, () => {
+              void chrome.runtime.lastError;
+            });
           }
         });
     }, 0);
@@ -665,7 +611,7 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "START_SCREENSHOT_SELECTION" && msg.data) {
       if (window !== window.top) return;
-      showSelectionOverlay(msg.data, msg.mode || "sidepanel");
+      showSelectionOverlay(msg.data);
       sendResponse({ success: true });
     }
   });
@@ -1100,18 +1046,6 @@
     });
     bar.appendChild(copyBtn);
 
-    const askAiBtn = document.createElement("button");
-    askAiBtn.textContent = "💬 问AI";
-    askAiBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (selectedText && isContextValid()) {
-        removeSelectionBar();
-        chrome.runtime.sendMessage({ type: "ASK_AI", data: selectedText });
-      }
-    });
-    bar.appendChild(askAiBtn);
-
     document.body.appendChild(bar);
 
     // 定位：横向以鼠标为中心，纵向优先放在锚点下方
@@ -1406,13 +1340,6 @@
       isDragging = false;
     }
 
-    // 点击头像 → 打开 Side Panel
-    avatar.addEventListener("click", () => {
-      if (hasDragged) return;
-      if (isContextValid())
-        chrome.runtime.sendMessage({ type: "TOGGLE_SIDE_PANEL" });
-    });
-
     // Close button
     const closeBtn = document.createElement("div");
     closeBtn.className = "doudou-close";
@@ -1507,11 +1434,6 @@
             }
             return;
           }
-          if (action.id === "summarize-page") {
-            if (!isContextValid()) return;
-            chrome.runtime.sendMessage({ type: "SUMMARIZE_PAGE_ACTION" });
-            return;
-          }
 
           if (isContextValid()) {
             chrome.runtime.sendMessage(
@@ -1543,21 +1465,6 @@
       const clamped = clampPosition(preferredPos.x, preferredPos.y, 48, 40);
       container.style.left = clamped.x + "px";
       container.style.top = clamped.y + "px";
-    });
-
-    // 侧边栏关闭后，恢复头像到保存的位置
-    chrome.runtime.onMessage.addListener((msg) => {
-      if (msg.type === "SIDEPANEL_CLOSED") {
-        chrome.storage.local.get(STORAGE_POS_KEY, (result) => {
-          const pos = result[STORAGE_POS_KEY];
-          if (pos) {
-            preferredPos = pos;
-            const clamped = clampPosition(pos.x, pos.y, 48, 40);
-            container.style.left = clamped.x + "px";
-            container.style.top = clamped.y + "px";
-          }
-        });
-      }
     });
   }
 

@@ -24,22 +24,9 @@ const DOUDOU_MESSAGE_TYPES = new Set([
   "CORS_UPDATE_CONFIG",
   "GET_CORS_STATUS",
   "DOUDOU_BTN_ACTION",
-  "TOGGLE_SIDE_PANEL",
-  "OPEN_SIDE_PANEL",
-  "ASK_AI",
-  "SUMMARIZE_PAGE_ACTION",
-  "GET_SIDEPANEL_STATUS",
-  "SIDEPANEL_CAPTURE_SCREENSHOT",
-  "SIDEPANEL_GET_PAGE_CONTENT",
-  "SCREENSHOT_RESULT",
   "POPUP_CAPTURE_SCREENSHOT",
   "DOWNLOAD_SCREENSHOT",
   "DOUDOU_DOWNLOAD_MEDIA",
-  "VOICE_START",
-  "VOICE_STOP",
-  "VOICE_RESULT",
-  "VOICE_ERROR",
-  "VOICE_END",
   "DOUDOU_TRANSLATE_PAGE",
   "OPEN_TAB",
 ]);
@@ -61,31 +48,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
-// Side Panel 状态追踪
-let sidePanelPort = null;
-
-// 长连接监听(流式对话 + side panel 状态)
+// 长连接监听(流式对话)
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === "doudou-sidepanel") {
-    sidePanelPort = port;
-    port.onDisconnect.addListener(async () => {
-      sidePanelPort = null;
-      // 通知当前标签页侧边栏已关闭，头像恢复位置
-      try {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (tab?.id)
-          chrome.tabs.sendMessage(
-            tab.id,
-            { type: "SIDEPANEL_CLOSED" },
-            () => void chrome.runtime.lastError,
-          );
-      } catch {}
-    });
-    return;
-  }
   if (port.name !== "doudou-chat") return;
 
   let disconnected = false;
@@ -99,31 +63,20 @@ chrome.runtime.onConnect.addListener((port) => {
     try {
       // 根据传入的 configType 获取对应配置
       const configType = msg.configType || "dialog"; // 默认使用对话模型
-      const configId = msg.configId; // 侧边栏传递的指定配置ID
       const { openaiConfigs } = await chrome.storage.sync.get(["openaiConfigs"]);
 
-      console.log(`[豆豆] 收到聊天请求，configType: ${configType}, configId: ${configId || "未指定"}`);
+      console.log(`[豆豆] 收到聊天请求，configType: ${configType}`);
       console.log(`[豆豆] 当前配置列表:`, openaiConfigs?.map(c => ({ name: c.name, type: c.type, id: c.id })));
 
       let config = null;
       if (openaiConfigs && openaiConfigs.length > 0) {
-        // 1. 如果指定了配置ID，优先使用指定的配置
-        if (configId) {
-          config = openaiConfigs.find(c => c.id === configId);
-          if (config) {
-            console.log(`[豆豆] 使用指定配置ID: ${config.name} (ID: ${config.id})`);
-          }
+        // 1. 按类型匹配
+        config = openaiConfigs.find(c => c.type === configType);
+        if (config) {
+          console.log(`[豆豆] 按类型匹配配置: ${config.name} (类型: ${config.type})`);
         }
 
-        // 2. 如果没有指定ID或ID未找到，按类型匹配
-        if (!config) {
-          config = openaiConfigs.find(c => c.type === configType);
-          if (config) {
-            console.log(`[豆豆] 按类型匹配配置: ${config.name} (类型: ${config.type})`);
-          }
-        }
-
-        // 3. 如果都没找到，使用第一个配置兜底
+        // 2. 如果没找到，使用第一个配置兜底
         if (!config) {
           console.log(`[豆豆] 未找到类型为 "${configType}" 的配置，使用第一个配置兜底`);
           config = openaiConfigs[0];
@@ -291,142 +244,6 @@ async function handleMessage(request, sender) {
         (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
       return await handleDoudouBtnAction(request.action, actionTab);
     }
-    case "TOGGLE_SIDE_PANEL": {
-      const windowId =
-        sender?.tab?.windowId ??
-        (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
-          ?.windowId;
-      if (windowId == null) return { success: false, error: "无法获取窗口" };
-      if (sidePanelPort) {
-        // 已打开 → 关闭：先禁用再恢复
-        await chrome.sidePanel.setOptions({ enabled: false });
-        await chrome.sidePanel.setOptions({
-          enabled: true,
-          path: "src/sidepanel.html",
-        });
-      } else {
-        await chrome.sidePanel.open({ windowId });
-      }
-      return { success: true };
-    }
-    case "OPEN_SIDE_PANEL": {
-      const windowId =
-        sender?.tab?.windowId ??
-        (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
-          ?.windowId;
-      if (windowId == null) return { success: false, error: "无法获取窗口" };
-      await chrome.sidePanel.open({ windowId });
-      return { success: true };
-    }
-    case "ASK_AI": {
-      const windowId =
-        sender?.tab?.windowId ??
-        (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
-          ?.windowId;
-      if (windowId == null) return { success: false, error: "无法获取窗口" };
-      const wasOpen = !!sidePanelPort;
-      await chrome.sidePanel.open({ windowId });
-      if (!wasOpen) {
-        await new Promise((resolve) => {
-          const check = () =>
-            sidePanelPort ? resolve() : setTimeout(check, 50);
-          check();
-        });
-        // 新面板需要等待 DOM 渲染
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      sidePanelPort.postMessage({ type: "ASK_AI", data: request.data });
-      return { success: true };
-    }
-    case "SUMMARIZE_PAGE_ACTION": {
-      const activeTab2 =
-        sender?.tab ??
-        (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-      if (!activeTab2?.id)
-        return { success: false, error: "无法获取当前标签页" };
-      const windowId2 = activeTab2.windowId;
-      // 先打开侧边栏（保持用户手势上下文）
-      const wasOpen2 = !!sidePanelPort;
-      await chrome.sidePanel.open({ windowId: windowId2 });
-      // 注入 TurndownService 并提取页面内容
-      const pageData2 = await getPageMarkdown(activeTab2.id);
-      // 等待侧边栏就绪
-      if (!wasOpen2) {
-        await new Promise((resolve) => {
-          const check = () =>
-            sidePanelPort ? resolve() : setTimeout(check, 50);
-          check();
-        });
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      sidePanelPort.postMessage({ type: "SUMMARIZE_PAGE", data: pageData2 });
-      return { success: true };
-    }
-    case "GET_SIDEPANEL_STATUS":
-      return { open: !!sidePanelPort };
-    case "SIDEPANEL_CAPTURE_SCREENSHOT": {
-      try {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab) return { success: false, error: "无法获取当前标签页" };
-        const tabUrl = activeTab.url || "";
-        if (!tabUrl.startsWith("http://") && !tabUrl.startsWith("https://")) {
-          return { success: false, error: "请切换到一个普通网页后再使用截图" };
-        }
-        const screenshotData = await safeCaptureVisibleTab();
-        // 通过 content script 执行截图选区，然后将结果传回 side panel
-        const msg = {
-          type: "START_SCREENSHOT_SELECTION",
-          data: screenshotData,
-        };
-        try {
-          await chrome.tabs.sendMessage(activeTab.id, msg);
-        } catch {
-          // content script 未注入或已失效，清理旧 DOM 后重新注入
-          await chrome.scripting.executeScript({
-            target: { tabId: activeTab.id },
-            func: () => {
-              document.getElementById("doudou-floating-btn")?.remove();
-            },
-          });
-          await chrome.scripting.executeScript({
-            target: { tabId: activeTab.id },
-            files: ["src/floating-btn.js"],
-          });
-          // 等待 content script 初始化完成
-          await new Promise((r) => setTimeout(r, 200));
-          await chrome.tabs.sendMessage(activeTab.id, msg);
-        }
-        return { success: true };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
-    }
-    case "SIDEPANEL_GET_PAGE_CONTENT": {
-      try {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab) return { success: false, error: "无法获取当前标签页" };
-        const data = await getPageMarkdown(activeTab.id);
-        return { success: true, data };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
-    }
-    case "SCREENSHOT_RESULT": {
-      // 将截图结果转发给 side panel
-      if (sidePanelPort) {
-        sidePanelPort.postMessage({
-          type: "SCREENSHOT_RESULT",
-          data: request.data,
-        });
-      }
-      return { success: true };
-    }
     case "POPUP_CAPTURE_SCREENSHOT": {
       try {
         const [activeTab] = await chrome.tabs.query({
@@ -435,11 +252,10 @@ async function handleMessage(request, sender) {
         });
         if (!activeTab) return { success: false, error: "无法获取当前标签页" };
         const screenshotData = await safeCaptureVisibleTab();
-        // 通过 content script 执行截图选区，mode=download 表示确认后直接下载
+        // 通过 content script 执行截图选区，确认后直接下载
         const msg = {
           type: "START_SCREENSHOT_SELECTION",
           data: screenshotData,
-          mode: "download",
         };
         try {
           await chrome.tabs.sendMessage(activeTab.id, msg);
@@ -506,110 +322,6 @@ async function handleMessage(request, sender) {
         return { success: false, error: err.message };
       }
     }
-    case "VOICE_START": {
-      try {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (!activeTab?.id)
-          return { success: false, error: "无法获取当前标签页" };
-        const tabUrl = activeTab.url || "";
-        if (!tabUrl.startsWith("http://") && !tabUrl.startsWith("https://")) {
-          return {
-            success: false,
-            error: "请切换到一个普通网页后再使用语音输入",
-          };
-        }
-        await chrome.scripting.executeScript({
-          target: { tabId: activeTab.id },
-          func: () => {
-            if (window._doudouVoiceRec) {
-              window._doudouVoiceRec.abort();
-              window._doudouVoiceRec = null;
-            }
-            const SR =
-              window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SR) {
-              chrome.runtime.sendMessage({
-                type: "VOICE_ERROR",
-                error: "浏览器不支持语音识别",
-              });
-              return;
-            }
-            const rec = new SR();
-            rec.lang = "zh-CN";
-            rec.interimResults = true;
-            rec.continuous = true;
-            window._doudouVoiceRec = rec;
-            let finalText = "";
-            rec.onresult = (e) => {
-              let interim = "";
-              for (let i = e.resultIndex; i < e.results.length; i++) {
-                const t = e.results[i][0].transcript;
-                if (e.results[i].isFinal) finalText += t;
-                else interim += t;
-              }
-              chrome.runtime.sendMessage({
-                type: "VOICE_RESULT",
-                final: finalText,
-                interim,
-              });
-            };
-            rec.onerror = (e) => {
-              if (e.error === "aborted" || e.error === "no-speech") return;
-              chrome.runtime.sendMessage({
-                type: "VOICE_ERROR",
-                error: e.error,
-              });
-              window._doudouVoiceRec = null;
-            };
-            rec.onend = () => {
-              if (window._doudouVoiceRec === rec) {
-                try {
-                  rec.start();
-                } catch (_) {
-                  window._doudouVoiceRec = null;
-                  chrome.runtime.sendMessage({ type: "VOICE_END" });
-                }
-              }
-            };
-            rec.start();
-          },
-        });
-        return { success: true };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
-    }
-    case "VOICE_STOP": {
-      try {
-        const [activeTab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        if (activeTab?.id) {
-          await chrome.scripting.executeScript({
-            target: { tabId: activeTab.id },
-            func: () => {
-              if (window._doudouVoiceRec) {
-                window._doudouVoiceRec.abort();
-                window._doudouVoiceRec = null;
-              }
-            },
-          });
-        }
-      } catch {}
-      return { success: true };
-    }
-    case "VOICE_RESULT":
-    case "VOICE_ERROR":
-    case "VOICE_END": {
-      if (sidePanelPort) {
-        sidePanelPort.postMessage(request);
-      }
-      return { success: true };
-    }
     case "DOUDOU_TRANSLATE_PAGE": {
       try {
         const activeTab =
@@ -630,78 +342,6 @@ async function handleMessage(request, sender) {
     default:
       return { error: "Unknown message type" };
   }
-}
-
-// 注入 TurndownService 并提取页面 Markdown 内容
-async function getPageMarkdown(tabId) {
-  try {
-    await chrome.scripting.executeScript({
-      target: { tabId, allFrames: true },
-      files: ["lib/turndown.js", "src/utils/turndown-rules.js"],
-    });
-  } catch (err) {
-    console.error("[豆豆] 注入 turndown 报错(可能部分 frame 被拦截):", err);
-  }
-
-  const results = await chrome.scripting.executeScript({
-    target: { tabId, allFrames: true },
-    func: () => {
-      const title = document.title || "";
-      const url = location.href || "";
-      // 移除噪音元素后提取正文
-      const clone = document.body.cloneNode(true);
-      const noiseTags = ["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "IFRAME"];
-      for (const tag of noiseTags) {
-        clone.querySelectorAll(tag).forEach((el) => el.remove());
-      }
-      const noiseSelectors = [
-        "[role=navigation]",
-        "[role=banner]",
-        "[role=contentinfo]",
-        "[aria-hidden=true]",
-      ];
-      for (const sel of noiseSelectors) {
-        clone.querySelectorAll(sel).forEach((el) => el.remove());
-      }
-      // 移除豆豆插件自身的 DOM 元素
-      clone
-        .querySelectorAll("[id^='doudou-'], [data-doudou-translate]")
-        .forEach((el) => el.remove());
-
-      let md = "";
-      if (typeof TurndownService !== "undefined") {
-        const parser = new TurndownService();
-        if (typeof addTurndownRules === "function") addTurndownRules(parser);
-        md = parser.turndown(clone.innerHTML);
-        // 压缩多余空行
-        md = md.replace(/(\s*\n\s*){3,}/g, "\n\n").trim();
-      }
-
-      return { title, url, md };
-    },
-  });
-
-  let baseTitle = "";
-  let baseUrl = "";
-  let finalMd = "";
-
-  if (results && results.length > 0) {
-    // 按返回结果合并所有 frame 的 Markdown 内容
-    for (const res of results) {
-      if (!res.result) continue;
-      // frameId 为 0 通常是主框架
-      if (res.frameId === 0) {
-        baseTitle = res.result.title;
-        baseUrl = res.result.url;
-      }
-      if (res.result.md) {
-        if (finalMd) finalMd += "\n\n---\n\n";
-        finalMd += res.result.md;
-      }
-    }
-  }
-
-  return `标题：${baseTitle}\n链接：${baseUrl}\n\n${finalMd}`;
 }
 
 // 处理豆豆浮窗按钮操作

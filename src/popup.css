@@ -48,16 +48,6 @@ h2 {
   border-radius: 4px;
 }
 
-.sidebar-open-btn {
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sidebar-open-btn:hover {
-  background: #f0f0f0;
-  color: #333;
-}
-
 .toggle-label {
   font-weight: 400;
 }

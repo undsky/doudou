@@ -76,34 +76,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 侧边栏开关
-  const sidebarToggleInput = document.getElementById("sidebar-toggle-input");
-  if (sidebarToggleInput) {
-    // 通过 port 检测 side panel 是否已打开（向 background 查询）
-    chrome.runtime.sendMessage({ type: "GET_SIDEPANEL_STATUS" }, (res) => {
-      void chrome.runtime.lastError;
-      sidebarToggleInput.checked = !!res?.open;
-    });
-
-    sidebarToggleInput.addEventListener("change", async () => {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (!tab) return;
-      if (sidebarToggleInput.checked) {
-        await chrome.sidePanel.open({ windowId: tab.windowId });
-      } else {
-        // 关闭：先禁用再恢复
-        await chrome.sidePanel.setOptions({ enabled: false });
-        await chrome.sidePanel.setOptions({
-          enabled: true,
-          path: "src/sidepanel.html",
-        });
-      }
-    });
-  }
-
   async function ensureCorsEnabled() {
     const statusRes = await chrome.runtime.sendMessage({
       type: "GET_CORS_STATUS",
