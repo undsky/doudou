@@ -712,19 +712,13 @@ async function handleDoudouBtnAction(action, tab) {
     case "screenshot":
       await chrome.debugger.attach({ tabId: tab.id }, "1.3");
       try {
-        await chrome.debugger.sendCommand({ tabId: tab.id }, "Page.enable");
-        const { contentSize } = await chrome.debugger.sendCommand(
-          { tabId: tab.id },
-          "Page.getLayoutMetrics",
-        );
-        const { width, height } = contentSize;
-
         // Scroll to bottom to ensure full page content is loaded
         await chrome.debugger.sendCommand(
           { tabId: tab.id },
           "Runtime.evaluate",
           {
-            expression: "window.scrollTo(0, document.body.scrollHeight)",
+            expression:
+              "window.scrollTo(0, Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0))",
             awaitPromise: true,
           },
         );
@@ -744,6 +738,52 @@ async function handleDoudouBtnAction(action, tab) {
 
         // Wait for scroll to complete
         await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Get layout metrics (use cssContentSize in CSS pixels to prevent high-DPI scaling issues)
+        const metrics = await chrome.debugger.sendCommand(
+          { tabId: tab.id },
+          "Page.getLayoutMetrics",
+        );
+
+        const cssSize = metrics.cssContentSize || metrics.cssLayoutViewport;
+        let width = cssSize ? cssSize.width || cssSize.clientWidth : 0;
+        let height = cssSize ? cssSize.height || cssSize.clientHeight : 0;
+
+        if (!width || !height) {
+          const evalResult = await chrome.debugger.sendCommand(
+            { tabId: tab.id },
+            "Runtime.evaluate",
+            {
+              expression: `(() => {
+                const body = document.body;
+                const html = document.documentElement;
+                return {
+                  width: Math.max(
+                    body ? body.scrollWidth : 0,
+                    body ? body.offsetWidth : 0,
+                    html ? html.clientWidth : 0,
+                    html ? html.scrollWidth : 0,
+                    html ? html.offsetWidth : 0
+                  ),
+                  height: Math.max(
+                    body ? body.scrollHeight : 0,
+                    body ? body.offsetHeight : 0,
+                    html ? html.clientHeight : 0,
+                    html ? html.scrollHeight : 0,
+                    html ? html.offsetHeight : 0
+                  )
+                };
+              })()`,
+              returnByValue: true,
+            },
+          );
+          const domSize = evalResult?.result?.value;
+          width = width || domSize?.width || 1280;
+          height = height || domSize?.height || 800;
+        }
+
+        width = Math.ceil(width);
+        height = Math.ceil(height);
 
         const { data } = await chrome.debugger.sendCommand(
           { tabId: tab.id },

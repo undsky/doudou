@@ -370,10 +370,31 @@
 
     const btns = document.createElement("div");
     btns.style.cssText =
-      "position:absolute;display:none;gap:4px;background:rgba(255,255,255,0.95);border-radius:20px;padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);pointer-events:auto;z-index:3;";
-    btns.innerHTML = `<button id="doudou-ss-cancel" style="width:28px;height:28px;border:none;border-radius:50%;background:none;cursor:pointer;font-size:16px;color:#666;display:flex;align-items:center;justify-content:center;">✕</button>
-      <button id="doudou-ss-confirm" style="width:28px;height:28px;border:none;border-radius:50%;background:none;cursor:pointer;font-size:16px;color:#1890ff;display:flex;align-items:center;justify-content:center;">✓</button>`;
+      "position:absolute;display:none;gap:8px;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);border-radius:6px;padding:6px 10px;box-shadow:0 4px 12px rgba(0,0,0,0.18);pointer-events:auto;z-index:3;align-items:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;";
+    btns.innerHTML = `<button id="doudou-ss-cancel" style="padding:4px 12px;border:1px solid #d9d9d9;border-radius:4px;background:#fff;cursor:pointer;font-size:12px;color:#595959;line-height:1.4;outline:none;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;">取消</button>
+      <button id="doudou-ss-confirm" style="padding:4px 12px;border:none;border-radius:4px;background:#1890ff;cursor:pointer;font-size:12px;color:#fff;font-weight:500;line-height:1.4;outline:none;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;">确定</button>`;
     overlay.appendChild(btns);
+
+    const cancelBtn = btns.querySelector("#doudou-ss-cancel");
+    const confirmBtn = btns.querySelector("#doudou-ss-confirm");
+    if (cancelBtn) {
+      cancelBtn.onmouseenter = () => {
+        cancelBtn.style.borderColor = "#40a9ff";
+        cancelBtn.style.color = "#40a9ff";
+      };
+      cancelBtn.onmouseleave = () => {
+        cancelBtn.style.borderColor = "#d9d9d9";
+        cancelBtn.style.color = "#595959";
+      };
+    }
+    if (confirmBtn) {
+      confirmBtn.onmouseenter = () => {
+        confirmBtn.style.background = "#40a9ff";
+      };
+      confirmBtn.onmouseleave = () => {
+        confirmBtn.style.background = "#1890ff";
+      };
+    }
 
     document.body.appendChild(overlay);
 
@@ -417,8 +438,17 @@
 
       if (hasSelection && r.w > 10 && r.h > 10) {
         btns.style.display = "flex";
-        btns.style.left = r.x + r.w - btns.offsetWidth + "px";
-        btns.style.top = r.y + r.h + 8 + "px";
+        let topPos = r.y + r.h + 8;
+        if (topPos + 40 > window.innerHeight) {
+          topPos = Math.max(8, r.y - 42);
+        }
+        let leftPos = r.x + r.w - btns.offsetWidth;
+        if (leftPos < 8) leftPos = 8;
+        if (leftPos + btns.offsetWidth > window.innerWidth - 8) {
+          leftPos = window.innerWidth - btns.offsetWidth - 8;
+        }
+        btns.style.left = leftPos + "px";
+        btns.style.top = topPos + "px";
       }
     }
 
@@ -449,7 +479,8 @@
       }
       if (
         e.target.id === "doudou-ss-cancel" ||
-        e.target.id === "doudou-ss-confirm"
+        e.target.id === "doudou-ss-confirm" ||
+        btns.contains(e.target)
       )
         return;
 
