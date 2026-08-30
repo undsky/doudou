@@ -520,16 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // JSON编辑器
-  const jsonEditorBtn = document.getElementById("json-editor");
-  if (jsonEditorBtn) {
-    jsonEditorBtn.addEventListener("click", () => {
-      chrome.tabs.create({
-        url: "src/jsoneditor/index.html",
-      });
-    });
-  }
-
   // API 调试
   const apiDebuggerBtn = document.getElementById("api-debugger");
   if (apiDebuggerBtn) {
@@ -644,4 +634,3 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
-
