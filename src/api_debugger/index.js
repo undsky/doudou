@@ -67,6 +67,7 @@ function createDefaultInterface(seed = {}) {
     rawFormat: "json",
     rawBody: "",
     formData: [{ enabled: true, type: "text", key: "", value: "", file: null }],
+    lastResponse: null,
     ...seed,
   };
 }
@@ -107,6 +108,7 @@ function cacheDom() {
   dom.responseSummary = document.getElementById("response-summary");
   dom.copyResponseButton = document.getElementById("copy-response-button");
   dom.clearResponseButton = document.getElementById("clear-response-button");
+  dom.copyCurlButton = document.getElementById("copy-curl-button");
   dom.responseJsoneditor = document.getElementById("response-jsoneditor");
   dom.responseTextPreview = document.getElementById("response-text-preview");
   dom.responseHeaders = document.getElementById("response-headers");
@@ -223,6 +225,9 @@ function loadInterfaces() {
   if (!getActiveInterface()) {
     state.activeId = state.interfaces[0]?.id || null;
   }
+
+  const activeApi = getActiveInterface();
+  state.response = activeApi?.lastResponse || null;
 }
 
 function normalizeInterface(api) {
@@ -236,6 +241,7 @@ function normalizeInterface(api) {
     headers: normalizeRows(api.headers),
     query: normalizeRows(api.query),
     formData: normalizeFormDataRows(api.formData),
+    lastResponse: api.lastResponse && typeof api.lastResponse === "object" ? api.lastResponse : null,
   });
   normalized.name = typeof normalized.name === "string" ? normalized.name : "新接口";
   normalized.url = typeof normalized.url === "string" ? normalized.url : "";
@@ -260,7 +266,7 @@ function normalizeFormDataRows(rows) {
   }
   return rows.map((row) => ({
     enabled: row.enabled !== false,
-    type: row.type === "file" ? "file" : "text",
+    type: ["text", "number", "file"].includes(row.type) ? row.type : "text",
     key: row.key || "",
     value: row.value || "",
     file: row.file instanceof File ? row.file : null,
@@ -272,15 +278,19 @@ function saveInterfaces() {
     ...api,
     formData: api.formData.map((row) => ({
       enabled: row.enabled,
-      type: row.type === "file" ? "file" : "text",
+      type: ["text", "number", "file"].includes(row.type) ? row.type : "text",
       key: row.key || "",
       value: row.value || (row.file ? row.file.name : ""),
     })),
   }));
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ interfaces: serializableInterfaces, activeId: state.activeId }),
-  );
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ interfaces: serializableInterfaces, activeId: state.activeId }),
+    );
+  } catch (err) {
+    console.warn("保存接口数据失败:", err);
+  }
 }
 
 function getActiveInterface() {
@@ -291,7 +301,7 @@ function addInterface(seed = {}) {
   const api = createDefaultInterface(seed);
   state.interfaces.unshift(api);
   state.activeId = api.id;
-  state.response = null;
+  state.response = api.lastResponse || null;
   saveInterfaces();
   renderAll();
 }
@@ -305,7 +315,7 @@ function deleteInterface(id) {
     state.response = null;
   } else if (state.activeId === id) {
     state.activeId = state.interfaces[0]?.id || null;
-    state.response = null;
+    state.response = getActiveInterface()?.lastResponse || null;
   }
   saveInterfaces();
   renderAll();
@@ -388,7 +398,8 @@ function renderInterfaceList() {
 function selectInterface(id) {
   if (state.activeId === id) return;
   state.activeId = id;
-  state.response = null;
+  const api = getActiveInterface();
+  state.response = api?.lastResponse || null;
   saveInterfaces();
   renderAll();
 }
@@ -396,7 +407,8 @@ function selectInterface(id) {
 function selectInterfaceFromList(id) {
   if (state.activeId === id) return;
   state.activeId = id;
-  state.response = null;
+  const api = getActiveInterface();
+  state.response = api?.lastResponse || null;
   saveInterfaces();
   renderRequestEditor();
   renderResponse();
@@ -555,11 +567,14 @@ function renderFormDataTable(container, rows, onChange) {
     const optText = document.createElement("option");
     optText.value = "text";
     optText.textContent = "Text";
+    const optNumber = document.createElement("option");
+    optNumber.value = "number";
+    optNumber.textContent = "Number";
     const optFile = document.createElement("option");
     optFile.value = "file";
     optFile.textContent = "File";
-    typeSelect.append(optText, optFile);
-    typeSelect.value = row.type === "file" ? "file" : "text";
+    typeSelect.append(optText, optNumber, optFile);
+    typeSelect.value = ["text", "number", "file"].includes(row.type) ? row.type : "text";
 
     const valueContainer = document.createElement("div");
     valueContainer.className = "kv-value-container";
@@ -653,6 +668,18 @@ function renderFormDataTable(container, rows, onChange) {
 
         fileWrapper.append(fileInput, chooseBtn, fileInfo, removeBtn);
         valueContainer.appendChild(fileWrapper);
+      } else if (row.type === "number") {
+        const numberInput = document.createElement("input");
+        numberInput.type = "number";
+        numberInput.step = "any";
+        numberInput.placeholder = "数字";
+        numberInput.value = row.value || "";
+        numberInput.setAttribute("aria-label", "Form Data 参数值");
+        numberInput.addEventListener("input", () => {
+          row.value = numberInput.value;
+          onChange();
+        });
+        valueContainer.appendChild(numberInput);
       } else {
         const textInput = document.createElement("input");
         textInput.type = "text";
@@ -671,6 +698,8 @@ function renderFormDataTable(container, rows, onChange) {
       row.type = typeSelect.value;
       if (row.type === "file") {
         if (!row.file) row.value = "";
+      } else {
+        row.file = null;
       }
       onChange();
       updateValueControl();
@@ -716,8 +745,14 @@ function bindEvents() {
   dom.rawBody.addEventListener("input", () => updateActiveInterface({ rawBody: dom.rawBody.value }));
   dom.sendButton.addEventListener("click", sendRequest);
   dom.copyResponseButton.addEventListener("click", copyActiveResponse);
+  dom.copyCurlButton?.addEventListener("click", copyActiveCurl);
   dom.clearResponseButton.addEventListener("click", () => {
     state.response = null;
+    const api = getActiveInterface();
+    if (api) {
+      api.lastResponse = null;
+      saveInterfaces();
+    }
     renderResponse();
   });
 
@@ -758,6 +793,91 @@ function addRow(key) {
   }
   saveInterfaces();
   renderRequestEditor();
+}
+
+function escapeShellArg(str) {
+  return `'${String(str ?? "").replace(/'/g, "'\\''")}'`;
+}
+
+function buildCurlCommand(api) {
+  if (!api || !api.url || !api.url.trim()) {
+    throw new Error("请先输入有效的请求链接");
+  }
+
+  let finalUrl;
+  try {
+    finalUrl = buildFinalUrl(api);
+  } catch (error) {
+    throw new Error("请输入有效的请求链接");
+  }
+
+  const parts = ["curl"];
+
+  if (api.protocol === "http/1.1") {
+    parts.push("--http1.1");
+  } else if (api.protocol === "http/2") {
+    parts.push("--http2");
+  }
+
+  parts.push(escapeShellArg(finalUrl));
+
+  if (api.method && api.method !== "GET") {
+    parts.push(`-X ${api.method}`);
+  }
+
+  let hasContentType = false;
+  for (const row of api.headers) {
+    const key = row.key.trim();
+    if (!row.enabled || !key) continue;
+    if (key.toLowerCase() === "content-type") {
+      hasContentType = true;
+    }
+    parts.push(`-H ${escapeShellArg(`${key}: ${row.value || ""}`)}`);
+  }
+
+  if (api.bodyType === "raw" && api.method !== "GET" && !hasContentType) {
+    if (api.rawFormat === "json") {
+      parts.push(`-H ${escapeShellArg("Content-Type: application/json")}`);
+    } else {
+      parts.push(`-H ${escapeShellArg("Content-Type: text/plain")}`);
+    }
+  }
+
+  if (api.method !== "GET") {
+    if (api.bodyType === "raw" && api.rawBody) {
+      const text = api.rawFormat === "json" ? sanitizeText(api.rawBody) : api.rawBody;
+      parts.push(`--data-raw ${escapeShellArg(text)}`);
+    } else if (api.bodyType === "form-data" && Array.isArray(api.formData)) {
+      for (const row of api.formData) {
+        const key = row.key.trim();
+        if (!row.enabled || !key) continue;
+        if (row.type === "file") {
+          const fileName = row.file instanceof File ? row.file.name : (row.value || "file.bin");
+          parts.push(`-F ${escapeShellArg(`${key}=@${fileName}`)}`);
+        } else {
+          parts.push(`-F ${escapeShellArg(`${key}=${row.value || ""}`)}`);
+        }
+      }
+    }
+  }
+
+  return parts.join(" \\\n  ");
+}
+
+async function copyActiveCurl() {
+  const api = getActiveInterface();
+  if (!api) {
+    showToast("暂无可复制接口", "error");
+    return;
+  }
+
+  try {
+    const curlCommand = buildCurlCommand(api);
+    await navigator.clipboard.writeText(curlCommand);
+    showToast("cURL 已复制", "success");
+  } catch (error) {
+    showToast(error.message || "复制失败", "error");
+  }
 }
 
 async function copyActiveResponse() {
@@ -819,7 +939,7 @@ async function importInterfacesJson() {
     );
     state.interfaces = [...state.interfaces, ...data.interfaces];
     state.activeId = data.activeId;
-    state.response = null;
+    state.response = getActiveInterface()?.lastResponse || null;
     saveInterfaces();
     renderAll();
     showToast("接口已导入", "success");
@@ -1186,6 +1306,13 @@ function renderCompletedResponse(result) {
     error: null,
   };
   state.responseTab = "beautified";
+
+  const api = getActiveInterface();
+  if (api) {
+    api.lastResponse = state.response;
+    saveInterfaces();
+  }
+
   renderResponse();
 }
 
@@ -1215,6 +1342,13 @@ function renderRequestError(error, actualRequest) {
     error: error.message || String(error),
   };
   state.responseTab = "beautified";
+
+  const api = getActiveInterface();
+  if (api) {
+    api.lastResponse = state.response;
+    saveInterfaces();
+  }
+
   renderResponse();
 }
 

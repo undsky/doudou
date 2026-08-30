@@ -63,11 +63,16 @@
 
         <div class="debugger-grid">
           <section class="request-panel panel">
-            <div class="tabs" id="request-tabs">
-            <button class="tab active" data-tab="headers" type="button">Header</button>
-            <button class="tab" data-tab="query" type="button">Query</button>
-            <button class="tab" data-tab="body" type="button">Body</button>
-          </div>
+            <div class="request-tabs-row">
+              <div class="tabs" id="request-tabs">
+                <button class="tab active" data-tab="headers" type="button">Header</button>
+                <button class="tab" data-tab="query" type="button">Query</button>
+                <button class="tab" data-tab="body" type="button">Body</button>
+              </div>
+              <div class="request-actions">
+                <button id="copy-curl-button" class="btn btn-small" type="button">复制 cURL</button>
+              </div>
+            </div>
 
           <div class="tab-panels">
             <section id="request-tab-headers" class="tab-panel active">

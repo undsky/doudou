@@ -303,6 +303,23 @@ textarea {
   padding: 5px 9px;
 }
 
+.request-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.request-tabs-row .tabs {
+  border-bottom: none;
+}
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  padding-right: 12px;
+}
+
 .tabs {
   display: flex;
   flex: none;
@@ -383,7 +400,7 @@ textarea {
 
 .kv-row-form-data {
   display: grid;
-  grid-template-columns: 28px minmax(100px, 1fr) 78px minmax(140px, 1.4fr) 34px;
+  grid-template-columns: 28px minmax(100px, 1fr) 88px minmax(140px, 1.4fr) 34px;
   gap: 8px;
   align-items: center;
 }
@@ -410,7 +427,8 @@ textarea {
   display: flex;
 }
 
-.kv-value-container input[type="text"] {
+.kv-value-container input[type="text"],
+.kv-value-container input[type="number"] {
   width: 100%;
 }
 
@@ -504,7 +522,8 @@ textarea {
   padding: 0;
 }
 
-.kv-row input[type="text"] {
+.kv-row input[type="text"],
+.kv-row input[type="number"] {
   min-width: 0;
 }
 
