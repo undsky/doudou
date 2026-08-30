@@ -10,7 +10,7 @@
     <div class="sidebar">
       <h2>设置</h2>
       <ul class="nav-menu">
-        <li class="nav-item active" data-tab="openai">AI 配置</li>
+        <li class="nav-item active" data-tab="translate">翻译配置</li>
         <li class="nav-item" data-tab="cors">CORS Unblock</li>
 
         <li class="nav-item" data-tab="other">Cookie 设置</li>
@@ -20,171 +20,98 @@
 
     <!-- 主内容区 -->
     <div class="main-content">
-      <!-- AI 配置面板 -->
-      <div id="openai-panel" class="panel active">
-        <div
-          class="panel-title"
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
-          AI 配置
-        </div>
+      <!-- 翻译配置面板 -->
+      <div id="translate-panel" class="panel active">
+        <div class="panel-title">翻译配置</div>
 
-        <div class="relay-layout">
-          <!-- 左侧：配置列表 -->
-          <div class="relay-sidebar">
-            <div class="relay-sidebar-header">
-              <h3 class="relay-sidebar-title">配置列表</h3>
-              <div class="relay-sidebar-actions">
-                <button class="btn relay-sidebar-btn" id="importOpenaiBtn">
-                  导入
-                </button>
-                <button class="btn relay-sidebar-btn" id="exportOpenaiBtn">
-                  导出
-                </button>
+        <div class="form-section">
+          <div class="translate-section-header">
+            <div>
+              <h3 style="margin: 0">翻译模型</h3>
+              <div class="hint" style="margin-top: 4px">
+                网页翻译使用的模型，兼容 OpenAI 接口格式
+              </div>
+            </div>
+            <button
+              class="btn btn-warning"
+              id="translateTestBtn"
+              style="font-size: 12px; padding: 4px 10px"
+            >
+              测试
+            </button>
+          </div>
+
+          <div class="form-row" style="align-items: center">
+            <div class="form-group" style="flex: 1">
+              <label>API Base URL</label>
+              <input
+                type="url"
+                id="translateBaseUrl"
+                placeholder="https://api.openai.com/v1"
+              />
+            </div>
+            <div class="form-group">
+              <label>模型名称</label>
+              <input type="text" id="translateModel" placeholder="gpt-4o" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>API Key</label>
+              <input type="text" id="translateApiKey" placeholder="sk-..." />
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 10px">
+            <div class="form-group" style="width: 100%">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 8px;
+                "
+              >
                 <button
-                  class="btn btn-primary relay-sidebar-btn"
-                  id="addOpenaiBtn"
+                  class="btn btn-secondary"
+                  id="translateGetModelsBtn"
+                  style="font-size: 12px; padding: 4px 10px"
                 >
-                  添加
+                  获取模型
                 </button>
+                <span
+                  id="translateGetModelsStatus"
+                  style="font-size: 12px; color: #999"
+                ></span>
+                <input
+                  type="text"
+                  id="translateModelsFilter"
+                  placeholder="筛选模型..."
+                  style="
+                    width: 200px;
+                    padding: 4px 10px;
+                    font-size: 12px;
+                    border: 1px solid #d9d9d9;
+                    border-radius: 4px;
+                    display: none;
+                    margin-left: auto;
+                  "
+                />
               </div>
+              <div
+                id="translateModelsList"
+                style="
+                  display: none;
+                  max-height: calc(100vh - 400px);
+                  min-height: 60px;
+                  overflow-y: auto;
+                  border: 1px solid #d9d9d9;
+                  border-radius: 4px;
+                  padding: 8px;
+                  gap: 6px;
+                  grid-template-columns: repeat(3, 1fr);
+                "
+              ></div>
             </div>
-            <input
-              type="file"
-              id="importOpenaiFile"
-              accept=".json"
-              style="display: none"
-            />
-            <div id="openai-list" class="relay-list">
-              <!-- 动态内容 -->
-            </div>
-          </div>
-
-          <!-- 右侧：配置详情 -->
-          <div
-            class="relay-content"
-            id="openai-detail-container"
-            style="display: none"
-          >
-            <div class="form-section">
-              <div class="openai-item-header">
-                <div
-                  style="display: flex; gap: 8px; align-items: center; flex: 1"
-                >
-                  <select
-                    id="openaiType"
-                    style="
-                      padding: 6px 10px;
-                      font-size: 13px;
-                      border: 1px solid #d9d9d9;
-                      border-radius: 4px;
-                      min-width: 90px;
-                    "
-                  >
-                    <option value="dialog">对话</option>
-                    <option value="translate">翻译</option>
-                    <option value="poly">多态</option>
-                  </select>
-                  <input
-                    type="text"
-                    id="openaiName"
-                    placeholder="配置名称"
-                    style="
-                      flex: 1;
-                      padding: 6px 12px;
-                      border: 1px solid #d9d9d9;
-                      border-radius: 4px;
-                      font-size: 13px;
-                    "
-                  />
-                </div>
-                <div class="openai-item-actions">
-                  <button
-                    class="btn btn-warning"
-                    id="openaiTestBtn"
-                    style="font-size: 12px; padding: 4px 10px"
-                  >
-                    测试
-                  </button>
-                </div>
-              </div>
-              <div class="form-row" style="align-items: center">
-                <div class="form-group" style="flex: 1">
-                  <label>API Base URL</label>
-                  <input type="url" id="openaiBaseUrl" />
-                </div>
-                <div class="form-group">
-                  <label>模型名称</label>
-                  <input type="text" id="openaiModel" />
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>API Key</label>
-                  <input type="text" id="openaiApiKey" />
-                </div>
-              </div>
-              <div class="form-row" style="margin-top: 10px">
-                <div class="form-group" style="width: 100%">
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      gap: 10px;
-                      margin-bottom: 8px;
-                    "
-                  >
-                    <button
-                      class="btn btn-secondary"
-                      id="openaiGetModelsBtn"
-                      style="font-size: 12px; padding: 4px 10px"
-                    >
-                      获取模型
-                    </button>
-                    <span
-                      id="openaiGetModelsStatus"
-                      style="font-size: 12px; color: #999"
-                    ></span>
-                    <input
-                      type="text"
-                      id="openaiModelsFilter"
-                      placeholder="筛选模型..."
-                      style="
-                        width: 200px;
-                        padding: 4px 10px;
-                        font-size: 12px;
-                        border: 1px solid #d9d9d9;
-                        border-radius: 4px;
-                        display: none;
-                        margin-left: auto;
-                      "
-                    />
-                  </div>
-                  <div
-                    id="openaiModelsList"
-                    style="
-                      display: none;
-                      max-height: calc(100vh - 400px);
-                      min-height: 60px;
-                      overflow-y: auto;
-                      border: 1px solid #d9d9d9;
-                      border-radius: 4px;
-                      padding: 8px;
-                      gap: 6px;
-                      grid-template-columns: repeat(3, 1fr);
-                    "
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="openai-empty-state" class="relay-empty">
-            <p>请在左侧选择或添加一个 AI 配置</p>
           </div>
         </div>
       </div>

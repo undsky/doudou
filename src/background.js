@@ -7,7 +7,7 @@ import {
 } from "./utils/cookie.js";
 
 // OpenAI 客户端
-import { OpenAIClient } from "./ai/openai.js";
+import { OpenAIClient, getTranslateConfig } from "./ai/openai.js";
 
 import { safeCaptureVisibleTab } from "./utils/capture.js";
 
@@ -61,44 +61,23 @@ chrome.runtime.onConnect.addListener((port) => {
     if (msg.type !== "DOUDOU_CHAT_STREAM") return;
 
     try {
-      // 根据传入的 configType 获取对应配置
-      const configType = msg.configType || "dialog"; // 默认使用对话模型
-      const { openaiConfigs } = await chrome.storage.sync.get(["openaiConfigs"]);
+      const config = await getTranslateConfig();
 
-      console.log(`[豆豆] 收到聊天请求，configType: ${configType}`);
-      console.log(`[豆豆] 当前配置列表:`, openaiConfigs?.map(c => ({ name: c.name, type: c.type, id: c.id })));
-
-      let config = null;
-      if (openaiConfigs && openaiConfigs.length > 0) {
-        // 1. 按类型匹配
-        config = openaiConfigs.find(c => c.type === configType);
-        if (config) {
-          console.log(`[豆豆] 按类型匹配配置: ${config.name} (类型: ${config.type})`);
-        }
-
-        // 2. 如果没找到，使用第一个配置兜底
-        if (!config) {
-          console.log(`[豆豆] 未找到类型为 "${configType}" 的配置，使用第一个配置兜底`);
-          config = openaiConfigs[0];
-        }
-      }
-
-      if (!config || !config.openaiApiKey) {
+      if (!config.apiKey) {
         console.error("[豆豆] 配置错误: 未找到有效的 API Key");
         port.postMessage({
           type: "error",
-          data: "请先在「设置」页面配置 OpenAI API Key",
+          data: "请先在「设置」→「翻译配置」中填写 API Key",
         });
         return;
       }
 
       const client = new OpenAIClient({
-        apiKey: config.openaiApiKey,
-        baseURL: config.openaiBaseUrl || "https://api.openai.com/v1",
-        model: config.openaiModel || "gpt-4o",
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl || "https://api.openai.com/v1",
+        model: config.model || "gpt-4o",
       });
 
-      console.log(`[豆豆] 使用配置: ${config.name}`);
       console.log(`[豆豆] Base URL: ${client.baseURL}`);
       console.log(`[豆豆] Model: ${client.model}`);
       console.log(`[豆豆] 完整请求地址: ${client.baseURL}/chat/completions`);

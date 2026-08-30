@@ -6,6 +6,66 @@
  * 兼容 OpenAI API 格式的第三方服务（DeepSeek、通义千问等）
  */
 
+export const DEFAULT_TRANSLATE_CONFIG = {
+  baseUrl: "",
+  apiKey: "",
+  model: "",
+};
+
+/**
+ * 读取翻译模型配置（兼容旧版 AI 配置，自动迁移）
+ * @returns {Promise<{baseUrl: string, apiKey: string, model: string}>}
+ */
+export async function getTranslateConfig() {
+  try {
+    const { translateConfig, openaiConfigs, openaiConfig } =
+      await chrome.storage.sync.get([
+        "translateConfig",
+        "openaiConfigs",
+        "openaiConfig",
+      ]);
+
+    if (translateConfig && typeof translateConfig === "object") {
+      return { ...DEFAULT_TRANSLATE_CONFIG, ...translateConfig };
+    }
+
+    // 数据迁移：旧版多配置 → 单一翻译配置，优先取标记为「翻译」的那条
+    const legacy =
+      (Array.isArray(openaiConfigs) && openaiConfigs.length > 0
+        ? openaiConfigs.find((c) => c?.type === "translate") || openaiConfigs[0]
+        : null) || openaiConfig;
+
+    if (!legacy) return { ...DEFAULT_TRANSLATE_CONFIG };
+
+    const migrated = {
+      baseUrl: legacy.openaiBaseUrl || "",
+      apiKey: legacy.openaiApiKey || "",
+      model: legacy.openaiModel || "",
+    };
+    if (migrated.baseUrl || migrated.apiKey || migrated.model) {
+      await chrome.storage.sync.set({ translateConfig: migrated });
+    }
+    return migrated;
+  } catch (e) {
+    console.error("[翻译配置] 读取失败:", e);
+    return { ...DEFAULT_TRANSLATE_CONFIG };
+  }
+}
+
+/**
+ * 保存翻译模型配置
+ * @param {{baseUrl?: string, apiKey?: string, model?: string}} config
+ */
+export async function setTranslateConfig(config = {}) {
+  const translateConfig = {
+    baseUrl: typeof config.baseUrl === "string" ? config.baseUrl : "",
+    apiKey: typeof config.apiKey === "string" ? config.apiKey : "",
+    model: typeof config.model === "string" ? config.model : "",
+  };
+  await chrome.storage.sync.set({ translateConfig });
+  return translateConfig;
+}
+
 export class OpenAIClient {
   /**
    * @param {Object} options
@@ -33,26 +93,19 @@ export class OpenAIClient {
   }
 
   /**
-   * 从 Chrome Storage 加载配置并创建客户端
+   * 从 Chrome Storage 加载翻译配置并创建客户端
    * @returns {Promise<OpenAIClient|null>}
    */
   static async fromStorage() {
     try {
-      const { openaiConfigs, openaiConfig } = await chrome.storage.sync.get([
-        "openaiConfigs",
-        "openaiConfig",
-      ]);
-      const config =
-        openaiConfigs && openaiConfigs.length > 0
-          ? openaiConfigs[0]
-          : openaiConfig;
-      if (!config?.openaiApiKey) {
+      const config = await getTranslateConfig();
+      if (!config.apiKey) {
         return null;
       }
       return new OpenAIClient({
-        apiKey: config.openaiApiKey,
-        baseURL: config.openaiBaseUrl || "https://api.openai.com/v1",
-        model: config.openaiModel || "gpt-4o",
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl || "https://api.openai.com/v1",
+        model: config.model || "gpt-4o",
       });
     } catch (e) {
       console.error("[OpenAI] 从存储加载配置失败:", e);
