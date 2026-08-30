@@ -71,6 +71,14 @@ function createDefaultInterface(seed = {}) {
   };
 }
 
+function sanitizeJSON(text) {
+  if (typeof text !== "string") return text;
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  text = text.replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, "");
+  text = text.replace(/\u00A0/g, " ");
+  return text;
+}
+
 function cacheDom() {
   dom.addInterfaceButton = document.getElementById("add-interface-button");
   dom.importJsonButton = document.getElementById("import-json-button");
@@ -121,16 +129,38 @@ function initResponseEditor() {
   });
 }
 
+function syncRawBodyFromEditor() {
+  if (!rawBodyEditor) return;
+  try {
+    const text = rawBodyEditor.getText();
+    updateActiveInterface({ rawBody: text });
+  } catch (err) {
+    try {
+      const json = rawBodyEditor.get();
+      const text = JSON.stringify(json, null, 2);
+      updateActiveInterface({ rawBody: text });
+    } catch (e) {}
+  }
+}
+
 function initRawBodyEditor() {
   rawBodyEditor = new JSONEditor(dom.rawBodyJsoneditor, {
-    mode: "code",
-    modes: ["code"],
+    mode: "form",
+    modes: ["tree", "code", "form", "text", "view", "preview"],
     search: true,
     history: true,
-    navigationBar: false,
+    navigationBar: true,
     statusBar: true,
-    mainMenuBar: false,
+    mainMenuBar: true,
+    colorPicker: true,
+    sortObjectKeys: false,
+    limitDragging: false,
+    escapeUnicode: false,
+    timestampTag: true,
     language: "zh-CN",
+    onChange() {
+      syncRawBodyFromEditor();
+    },
     onChangeText(text) {
       updateActiveInterface({ rawBody: text });
     },
@@ -138,6 +168,38 @@ function initRawBodyEditor() {
       showToast(error.toString(), "error");
     },
   });
+
+  // 拦截粘贴事件，清理不可见字符
+  dom.rawBodyJsoneditor.addEventListener("paste", (e) => {
+    const mode = rawBodyEditor.getMode();
+    if (mode === "code" || mode === "text") {
+      const raw = e.clipboardData.getData("text/plain");
+      const cleaned = sanitizeJSON(raw);
+      if (cleaned !== raw) {
+        e.stopPropagation();
+        e.preventDefault();
+        rawBodyEditor.setText(cleaned);
+      }
+    }
+  }, true);
+
+  // 包装模式切换，切换前清理文本中的不可见字符
+  const origSetMode = rawBodyEditor.setMode.bind(rawBodyEditor);
+  rawBodyEditor.setMode = function (mode) {
+    try {
+      const curMode = rawBodyEditor.getMode();
+      if (curMode === "code" || curMode === "text") {
+        const text = rawBodyEditor.getText();
+        const cleaned = sanitizeJSON(text);
+        if (cleaned !== text) {
+          rawBodyEditor.setText(cleaned);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    origSetMode(mode);
+  };
 }
 
 function loadInterfaces() {
@@ -361,7 +423,26 @@ function renderRequestEditor() {
   dom.requestProtocol.value = api.protocol;
   dom.rawFormat.value = api.rawFormat;
   dom.rawBody.value = api.rawBody;
-  if (rawBodyEditor) rawBodyEditor.setText(api.rawBody || "");
+  if (rawBodyEditor) {
+    try {
+      const text = sanitizeJSON(api.rawBody || "");
+      if (!text.trim()) {
+        const mode = rawBodyEditor.getMode();
+        if (mode === "tree" || mode === "form" || mode === "view") {
+          rawBodyEditor.set({});
+        } else {
+          rawBodyEditor.setText("");
+        }
+      } else {
+        const json = JSON.parse(text);
+        rawBodyEditor.set(json);
+      }
+    } catch (e) {
+      try {
+        rawBodyEditor.setText(api.rawBody || "");
+      } catch (err) {}
+    }
+  }
 
   for (const radio of document.querySelectorAll('input[name="body-type"]')) {
     radio.checked = radio.value === api.bodyType;

@@ -663,6 +663,22 @@ textarea {
   opacity: 1 !important;
 }
 
+.jsoneditor-contextmenu ul {
+  background: #fff !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.jsoneditor-contextmenu ul li button {
+  background: #fff !important;
+  color: #333 !important;
+}
+
+.jsoneditor-contextmenu ul li button:hover {
+  background: #f5f5f5 !important;
+}
+
 .empty-state {
   border: 1px dashed #d1d5db;
   border-radius: 10px;
