@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "豆豆 - AI自媒体工具",
+  "name": "豆豆 - 日常工具箱",
   "version": "3.0.1",
-  "description": "人人都能做自媒体",
+  "description": "",
   "permissions": [
     "storage",
     "scripting",
@@ -44,9 +44,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "icons/*"
-      ],
+      "resources": ["icons/*"],
       "matches": ["<all_urls>"]
     }
   ],

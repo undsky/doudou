@@ -485,14 +485,17 @@ async function handleDoudouBtnAction(action, tab) {
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
           const modal = document.createElement("div");
           modal.style.cssText =
-            "background:#fff;border-radius:12px;padding:24px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);max-width:280px;";
+            "background:#fff;border-radius:12px;padding:24px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);width:280px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;";
           modal.innerHTML = `
-            <div style="margin-bottom:16px;font-weight:500;color:#333;">扫码访问页面</div>
-            <img src="${qrUrl}" alt="QR Code" style="width:200px;height:200px;border-radius:8px;background:#f5f5f5;" crossorigin="anonymous" />
-            <div style="margin-top:12px;font-size:12px;color:#999;word-break:break-all;max-height:40px;overflow:hidden;">${url}</div>
-            <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;">
-              <button id="doudou-qr-close" style="padding:8px 20px;background:#f5f5f5;color:#666;border:none;border-radius:6px;cursor:pointer;font-size:14px;">关闭</button>
-              <button id="doudou-qr-download" style="padding:8px 20px;background:#1890ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;">下载</button>
+            <div style="margin-bottom:16px;font-weight:500;color:#333;font-size:16px;line-height:1.4;text-align:center;width:100%;box-sizing:border-box;">扫码访问页面</div>
+            <div style="display:flex;justify-content:center;align-items:center;width:100%;box-sizing:border-box;">
+              <img src="${qrUrl}" alt="QR Code" style="display:block;margin:0 auto;width:200px;height:200px;border-radius:8px;background:#f5f5f5;box-sizing:border-box;" crossorigin="anonymous" />
+            </div>
+            <div style="margin-top:12px;font-size:12px;color:#999;word-break:break-all;max-height:40px;overflow:hidden;line-height:1.4;text-align:center;width:100%;box-sizing:border-box;">${url}</div>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;width:100%;box-sizing:border-box;">
+              <button id="doudou-qr-close" style="padding:8px 16px;background:#f5f5f5;color:#666;border:none;border-radius:6px;cursor:pointer;font-size:14px;box-sizing:border-box;">关闭</button>
+              <button id="doudou-qr-copy" style="padding:8px 16px;background:#52c41a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;box-sizing:border-box;">复制</button>
+              <button id="doudou-qr-download" style="padding:8px 16px;background:#1890ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;box-sizing:border-box;">下载</button>
             </div>
           `;
           overlay.appendChild(modal);
@@ -504,6 +507,50 @@ async function handleDoudouBtnAction(action, tab) {
           document
             .getElementById("doudou-qr-close")
             .addEventListener("click", () => overlay.remove());
+          document
+            .getElementById("doudou-qr-copy")
+            .addEventListener("click", async () => {
+              const copyBtn = document.getElementById("doudou-qr-copy");
+              try {
+                const resp = await fetch(qrUrl);
+                const blob = await resp.blob();
+                const pngBlob =
+                  blob.type === "image/png"
+                    ? blob
+                    : new Blob([blob], { type: "image/png" });
+                await navigator.clipboard.write([
+                  new ClipboardItem({ "image/png": pngBlob }),
+                ]);
+                copyBtn.innerText = "已复制";
+                setTimeout(() => {
+                  if (copyBtn) copyBtn.innerText = "复制";
+                }, 1500);
+              } catch (err) {
+                try {
+                  const img = modal.querySelector("img");
+                  const canvas = document.createElement("canvas");
+                  canvas.width = img.naturalWidth || 200;
+                  canvas.height = img.naturalHeight || 200;
+                  const ctx = canvas.getContext("2d");
+                  ctx.drawImage(img, 0, 0);
+                  const b = await new Promise((res) =>
+                    canvas.toBlob(res, "image/png")
+                  );
+                  await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": b }),
+                  ]);
+                  copyBtn.innerText = "已复制";
+                  setTimeout(() => {
+                    if (copyBtn) copyBtn.innerText = "复制";
+                  }, 1500);
+                } catch (e) {
+                  copyBtn.innerText = "复制失败";
+                  setTimeout(() => {
+                    if (copyBtn) copyBtn.innerText = "复制";
+                  }, 1500);
+                }
+              }
+            });
           document
             .getElementById("doudou-qr-download")
             .addEventListener("click", async () => {

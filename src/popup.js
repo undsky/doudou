@@ -23,16 +23,7 @@ const DEFAULT_CORS_CONFIG = {
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-  const createArticleBtn = document.getElementById("create-article");
   const settingsBtn = document.getElementById("settings");
-
-  if (createArticleBtn) {
-    createArticleBtn.addEventListener("click", () => {
-      chrome.tabs.create({
-        url: "https://md.undsky.com",
-      });
-    });
-  }
 
   if (settingsBtn) {
     settingsBtn.addEventListener("click", () => {
