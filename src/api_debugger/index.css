@@ -740,3 +740,322 @@ textarea {
     grid-column: auto;
   }
 }
+
+/* ==========================================================================
+   JSONEditor 图片智能预览 (Image Preview Popover & Modal)
+   ========================================================================== */
+
+/* JSON 节点高亮及图片标识 */
+.json-image-node .jsoneditor-value {
+  position: relative;
+  cursor: pointer;
+}
+
+.json-image-node .jsoneditor-value::after {
+  content: " 🖼️";
+  font-size: 11px;
+  opacity: 0.65;
+  vertical-align: middle;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.json-image-node .jsoneditor-value:hover::after {
+  opacity: 1;
+}
+
+/* 代码模式下被识别的图片字符串高亮 */
+.ace_string.json-image-detected {
+  cursor: pointer;
+  text-decoration: underline dotted #f59e0b;
+}
+
+/* 悬浮预览卡片 (Popover) */
+.json-image-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 290px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.18), 0 8px 12px -6px rgba(15, 23, 42, 0.08);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transform-origin: top center;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.json-image-popover.hidden {
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  pointer-events: none;
+}
+
+.jip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.jip-format-badge {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jip-meta-text {
+  color: #6b7280;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jip-preview-container {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  min-height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  cursor: zoom-in;
+}
+
+.jip-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.jip-preview-container:hover .jip-image {
+  transform: scale(1.03);
+}
+
+.jip-loading-spinner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  animation: jip-spin 0.8s linear infinite;
+}
+
+@keyframes jip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.jip-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ef4444;
+  font-size: 12px;
+  background: rgba(254, 242, 242, 0.9);
+  padding: 12px;
+  text-align: center;
+}
+
+.jip-error.hidden,
+.jip-loading-spinner.hidden {
+  display: none;
+}
+
+.jip-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.jip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.jip-btn:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.jip-btn:active {
+  transform: scale(0.97);
+}
+
+/* ==========================================================================
+   全屏大图预览弹窗 (Image Modal)
+   ========================================================================== */
+.image-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.image-preview-modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ipm-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.ipm-container {
+  position: relative;
+  z-index: 1;
+  max-width: 92vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.ipm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 320px;
+  padding: 8px 14px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ipm-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.ipm-badge {
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.ipm-meta {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.ipm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ipm-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ipm-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: #f59e0b;
+  color: #fef3c7;
+}
+
+.ipm-btn-close {
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ipm-body {
+  position: relative;
+  max-width: 90vw;
+  max-height: calc(90vh - 60px);
+  border-radius: 10px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  background-color: #1e293b;
+  background-image:
+    linear-gradient(45deg, #334155 25%, transparent 25%),
+    linear-gradient(-45deg, #334155 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #334155 75%),
+    linear-gradient(-45deg, transparent 75%, #334155 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ipm-image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(90vh - 60px);
+  object-fit: contain;
+}
+

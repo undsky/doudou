@@ -1,4 +1,9 @@
 import { showToast } from "../utils/ui.js";
+import {
+  getImageNodeClassName,
+  handleJsonEditorImageEvent,
+  attachAceImageHover,
+} from "./image_preview.js";
 
 const STORAGE_KEY = "doudou_api_debugger_interfaces";
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "DELETE"]);
@@ -125,10 +130,13 @@ function initResponseEditor() {
     statusBar: true,
     mainMenuBar: true,
     language: "zh-CN",
+    onClassName: getImageNodeClassName,
+    onEvent: handleJsonEditorImageEvent,
     onError(error) {
       showToast(error.toString(), "error");
     },
   });
+  attachAceImageHover(dom.responseJsoneditor);
 }
 
 function syncRawBodyFromEditor() {
@@ -160,6 +168,8 @@ function initRawBodyEditor() {
     escapeUnicode: false,
     timestampTag: true,
     language: "zh-CN",
+    onClassName: getImageNodeClassName,
+    onEvent: handleJsonEditorImageEvent,
     onChange() {
       syncRawBodyFromEditor();
     },
@@ -170,6 +180,7 @@ function initRawBodyEditor() {
       showToast(error.toString(), "error");
     },
   });
+  attachAceImageHover(dom.rawBodyJsoneditor);
 
   // 拦截粘贴事件，清理不可见字符
   dom.rawBodyJsoneditor.addEventListener("paste", (e) => {
