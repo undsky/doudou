@@ -475,7 +475,21 @@ document.addEventListener("DOMContentLoaded", () => {
         a.click();
         URL.revokeObjectURL(downloadUrl);
 
-        showToast(`已导出 ${result.count} 个Cookies`, "success");
+        // 复制到剪贴板
+        try {
+          await navigator.clipboard.writeText(cookieContent);
+        } catch (copyErr) {
+          const textarea = document.createElement("textarea");
+          textarea.value = cookieContent;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
+
+        showToast(`已导出并复制 ${result.count} 个Cookies`, "success");
 
         // 恢复按钮状态
         labelEl.textContent = originalText;

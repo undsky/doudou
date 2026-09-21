@@ -10,6 +10,7 @@
     "debugger",
     "downloads",
     "clipboardRead",
+    "clipboardWrite",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "tabs",
