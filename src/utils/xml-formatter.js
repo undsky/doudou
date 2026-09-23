@@ -8,10 +8,12 @@
 (async function () {
   const FRAME_ID = "doudou-xml-formatter-frame";
 
-  // 1. 如果已存在，直接激活显示
+  // 1. 如果已存在，直接激活显示并重新锁定宿主滚动
   const existingFrame = document.getElementById(FRAME_ID);
   if (existingFrame) {
     existingFrame.style.display = "block";
+    if (document.documentElement) document.documentElement.style.overflow = "hidden";
+    if (document.body) document.body.style.overflow = "hidden";
     return { success: true, message: "已激活 XML 排版视图" };
   }
 
@@ -245,12 +247,37 @@
   const feedData = parseFeedData(xmlDoc);
   const hasFeed = !!feedData;
 
-  // 6. 创建标准 HTML5 容器（跨越 XML 文档的严格解析限制）
+  // 6. 保存宿主页面原始滚动与溢出状态，锁定宿主滚动以避免原 XML 文本产生多余不联动滚动条
+  const hostPrevDocOverflow = document.documentElement?.style?.overflow || "";
+  const hostPrevBodyOverflow = document.body?.style?.overflow || "";
+
+  function lockHostScroll() {
+    if (document.documentElement) {
+      document.documentElement.style.overflow = "hidden";
+    }
+    if (document.body) {
+      document.body.style.overflow = "hidden";
+    }
+  }
+
+  function unlockHostScroll() {
+    if (document.documentElement) {
+      document.documentElement.style.overflow = hostPrevDocOverflow;
+    }
+    if (document.body) {
+      document.body.style.overflow = hostPrevBodyOverflow;
+    }
+  }
+
+  lockHostScroll();
+
+  // 创建标准 HTML5 容器（跨越 XML 文档的严格解析限制）
   const iframe = document.createElementNS(
     "http://www.w3.org/1999/xhtml",
     "iframe"
   );
   iframe.id = FRAME_ID;
+  iframe.tabIndex = 0;
   iframe.style.cssText =
     "position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:2147483647;background:#0b1120;color-scheme:dark;";
 
@@ -273,6 +300,50 @@
       height: 100%;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 现代精致滚动条定制（支持深色与浅色自适应） */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .theme-dark ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .theme-dark ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.38);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .theme-dark ::-webkit-scrollbar-thumb:active {
+      background: rgba(255, 255, 255, 0.55);
+    }
+    .theme-light ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .theme-light ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.38);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    .theme-light ::-webkit-scrollbar-thumb:active {
+      background: rgba(0, 0, 0, 0.55);
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+    .theme-light * {
+      scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
     }
     #app {
       display: flex;
@@ -495,7 +566,9 @@
     .content {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       position: relative;
+      overscroll-behavior: contain;
     }
 
     /* 1. RSS 阅读器视图 */
@@ -1222,9 +1295,63 @@
     showToast(`已下载 ${filename} ✓`);
   });
 
+  // 键盘快捷翻页支持（当焦点在宿主窗口时也能平滑滚动）
+  const onHostKeydown = (e) => {
+    if (!document.getElementById(FRAME_ID)) {
+      window.removeEventListener("keydown", onHostKeydown);
+      return;
+    }
+    const contentEl = doc.querySelector(".content");
+    if (!contentEl) return;
+    const scrollKeys = [
+      "Space",
+      "PageDown",
+      "PageUp",
+      "ArrowDown",
+      "ArrowUp",
+      "Home",
+      "End",
+    ];
+    if (scrollKeys.includes(e.code) && document.activeElement !== iframe) {
+      if (
+        e.target &&
+        (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      e.preventDefault();
+      const step = 80;
+      const pageStep = contentEl.clientHeight * 0.85;
+      switch (e.code) {
+        case "ArrowDown":
+          contentEl.scrollTop += step;
+          break;
+        case "ArrowUp":
+          contentEl.scrollTop -= step;
+          break;
+        case "PageDown":
+        case "Space":
+          contentEl.scrollTop += pageStep;
+          break;
+        case "PageUp":
+          contentEl.scrollTop -= pageStep;
+          break;
+        case "Home":
+          contentEl.scrollTop = 0;
+          break;
+        case "End":
+          contentEl.scrollTop = contentEl.scrollHeight;
+          break;
+      }
+    }
+  };
+  window.addEventListener("keydown", onHostKeydown);
+
   // 退出排版，恢复原生
   const btnExit = doc.getElementById("btn-exit");
   btnExit?.addEventListener("click", () => {
+    window.removeEventListener("keydown", onHostKeydown);
+    unlockHostScroll();
     iframe.remove();
   });
 
@@ -1314,6 +1441,13 @@
       }
     }, 250);
   });
+
+  setTimeout(() => {
+    try {
+      iframe.focus();
+      doc.body.focus();
+    } catch (_) {}
+  }, 100);
 
   return {
     success: true,
