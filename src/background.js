@@ -587,6 +587,30 @@ async function handleDoudouBtnAction(action, tab) {
       return { success: true };
     }
 
+    case "format-xml": {
+      const pageUrl = tab.url || "";
+      if (
+        pageUrl.startsWith("chrome://") ||
+        pageUrl.startsWith("edge://") ||
+        pageUrl.startsWith("chrome-extension://") ||
+        pageUrl.startsWith("about:")
+      ) {
+        return { error: "无法在此类系统页面执行 XML 排版" };
+      }
+
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["src/utils/xml-formatter.js"],
+      });
+
+      const res = results?.[0]?.result;
+      if (res && res.success === false) {
+        return { error: res.error || "当前页面不是 XML 内容" };
+      }
+
+      return { success: true, ...res };
+    }
+
     default:
       return { error: "未知操作" };
   }

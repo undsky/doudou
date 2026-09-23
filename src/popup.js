@@ -649,4 +649,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // XML 排版
+  const formatXmlBtn = document.getElementById("format-xml");
+  if (formatXmlBtn) {
+    formatXmlBtn.addEventListener("click", async () => {
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+
+        const url = tab?.url || "";
+        if (
+          url.startsWith("chrome://") ||
+          url.startsWith("edge://") ||
+          url.startsWith("chrome-extension://") ||
+          url.startsWith("about:")
+        ) {
+          showToast("无法在此系统页面使用 XML 排版", "error");
+          return;
+        }
+
+        const res = await chrome.runtime.sendMessage({
+          type: "DOUDOU_BTN_ACTION",
+          action: "format-xml",
+          tab: { id: tab.id, url: tab.url },
+        });
+
+        if (res && res.error) {
+          showToast(res.error, "warning");
+          return;
+        }
+
+        // 成功触发后关闭 popup 弹窗，方便用户直接浏览排版页面
+        window.close();
+      } catch (error) {
+        console.error("[豆豆] XML 排版失败:", error);
+        showToast("XML 排版失败: " + error.message, "error");
+      }
+    });
+  }
+
 });

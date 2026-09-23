@@ -42,6 +42,7 @@
     { id: "translate", icon: "🌐", label: "翻译" },
     { id: "screenshot", icon: "📸", label: "页面截图" },
     { id: "inspect-markdown", icon: "🎯", label: "页面转MD" },
+    { id: "format-xml", icon: "🏷️", label: "XML排版" },
     { id: "generate-qrcode", icon: "🔳", label: "生成二维码" },
     { id: "export-cookies", icon: "🍪", label: "导出Cookies" },
   ];
