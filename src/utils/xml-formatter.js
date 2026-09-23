@@ -8,14 +8,32 @@
 (async function () {
   const FRAME_ID = "doudou-xml-formatter-frame";
 
-  // 1. 如果已存在，直接激活显示并重新锁定宿主滚动
-  const existingFrame = document.getElementById(FRAME_ID);
-  if (existingFrame) {
-    existingFrame.style.display = "block";
+  let iframe = null;
+  let isHostLocked = false;
+  const hostPrevDocOverflow = document.documentElement?.style?.overflow || "";
+  const hostPrevBodyOverflow = document.body?.style?.overflow || "";
+
+  function lockHostScroll() {
     if (document.documentElement) document.documentElement.style.overflow = "hidden";
     if (document.body) document.body.style.overflow = "hidden";
-    return { success: true, message: "已激活 XML 排版视图" };
+    isHostLocked = true;
   }
+
+  function unlockHostScroll() {
+    if (!isHostLocked) return;
+    if (document.documentElement) document.documentElement.style.overflow = hostPrevDocOverflow;
+    if (document.body) document.body.style.overflow = hostPrevBodyOverflow;
+    isHostLocked = false;
+  }
+
+  try {
+    // 1. 如果已存在，直接激活显示并重新锁定宿主滚动
+    const existingFrame = document.getElementById(FRAME_ID);
+    if (existingFrame) {
+      existingFrame.style.display = "block";
+      lockHostScroll();
+      return { success: true, message: "已激活 XML 排版视图" };
+    }
 
   // 2. 检测当前页面是否为 XML
   function isXmlDocument() {
@@ -55,8 +73,29 @@
     };
   }
 
-  // 3. 获取原始 XML 文本
+  // 3. 获取原始 XML 文本（优先直接读取 Chromium 内置 XML Viewer 备份容器与原生 DOM，0 网络请求防反爬盾）
   async function fetchRawXml() {
+    // 优先 1：Chromium 内置 XML Viewer 备份容器
+    const sourceDiv = document.getElementById("webkit-xml-viewer-source-xml");
+    if (sourceDiv && sourceDiv.firstElementChild) {
+      return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        new XMLSerializer().serializeToString(sourceDiv.firstElementChild)
+      );
+    }
+
+    // 优先 2：非 HTML 根节点（XMLDocument 纯 XML 树）
+    if (
+      document.documentElement &&
+      document.documentElement.nodeName.toLowerCase() !== "html"
+    ) {
+      return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        new XMLSerializer().serializeToString(document.documentElement)
+      );
+    }
+
+    // 备选 3：通过网络 fetch 当前页面（用于某些纯文本呈现页面）
     try {
       const res = await fetch(window.location.href, { credentials: "include" });
       if (res.ok) {
@@ -70,30 +109,10 @@
         }
       }
     } catch (e) {
-      console.warn("[豆豆] fetch 当前页面失败，采用 DOM 解析:", e);
+      console.warn("[豆豆] fetch 当前页面失败，采用 DOM 解析备选:", e);
     }
 
-    // Chromium 内置 XML Viewer 备份容器
-    const sourceDiv = document.getElementById("webkit-xml-viewer-source-xml");
-    if (sourceDiv && sourceDiv.firstElementChild) {
-      return (
-        '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        new XMLSerializer().serializeToString(sourceDiv.firstElementChild)
-      );
-    }
-
-    // 非 HTML 根节点
-    if (
-      document.documentElement &&
-      document.documentElement.nodeName.toLowerCase() !== "html"
-    ) {
-      return (
-        '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        new XMLSerializer().serializeToString(document.documentElement)
-      );
-    }
-
-    // body 纯文本
+    // 备选 4：body 纯文本
     const bodyText = document.body ? document.body.innerText.trim() : "";
     if (bodyText.startsWith("<?xml") || bodyText.startsWith("<")) {
       return bodyText;
@@ -244,42 +263,76 @@
     return null;
   }
 
+  // 工具函数提前声明
+  function formatHumanDate(dateStr) {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const h = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      return `${y}-${m}-${day} ${h}:${min}`;
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
+  function escapeHtml(str) {
+    return (str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   const feedData = parseFeedData(xmlDoc);
-  const hasFeed = !!feedData;
+  const hasFeed = !!(feedData && feedData.items && feedData.items.length > 0);
 
-  // 6. 保存宿主页面原始滚动与溢出状态，锁定宿主滚动以避免原 XML 文本产生多余不联动滚动条
-  const hostPrevDocOverflow = document.documentElement?.style?.overflow || "";
-  const hostPrevBodyOverflow = document.body?.style?.overflow || "";
-
-  function lockHostScroll() {
-    if (document.documentElement) {
-      document.documentElement.style.overflow = "hidden";
-    }
-    if (document.body) {
-      document.body.style.overflow = "hidden";
-    }
+  // 6. 主题持久化读写
+  async function getSavedTheme() {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        const res = await chrome.storage.local.get("doudou_xml_theme");
+        if (res && res.doudou_xml_theme) return res.doudou_xml_theme;
+      }
+    } catch (_) {}
+    try {
+      const local = localStorage.getItem("doudou_xml_theme");
+      if (local) return local;
+    } catch (_) {}
+    return "dark";
   }
 
-  function unlockHostScroll() {
-    if (document.documentElement) {
-      document.documentElement.style.overflow = hostPrevDocOverflow;
-    }
-    if (document.body) {
-      document.body.style.overflow = hostPrevBodyOverflow;
-    }
+  async function saveTheme(theme) {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        await chrome.storage.local.set({ doudou_xml_theme: theme });
+      }
+    } catch (_) {}
+    try {
+      localStorage.setItem("doudou_xml_theme", theme);
+    } catch (_) {}
   }
 
+  const initialTheme = await getSavedTheme();
+  const isDarkInitial = initialTheme === "dark";
+
+  // 7. 锁定宿主滚动以避免原 XML 文本产生多余不联动滚动条
   lockHostScroll();
 
   // 创建标准 HTML5 容器（跨越 XML 文档的严格解析限制）
-  const iframe = document.createElementNS(
+  iframe = document.createElementNS(
     "http://www.w3.org/1999/xhtml",
     "iframe"
   );
   iframe.id = FRAME_ID;
   iframe.tabIndex = 0;
   iframe.style.cssText =
-    "position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:2147483647;background:#0b1120;color-scheme:dark;";
+    `position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:2147483647;background:${isDarkInitial ? "#0b1120" : "#f8fafc"};color-scheme:${isDarkInitial ? "dark" : "light"};`;
 
   const targetParent = document.body || document.documentElement;
   targetParent.appendChild(iframe);
@@ -838,7 +891,7 @@
     }
   </style>
 </head>
-<body class="theme-dark">
+<body class="${isDarkInitial ? "theme-dark" : "theme-light"}">
   <div id="app">
     <header class="header">
       <div class="header-left">
@@ -966,32 +1019,6 @@
 </body>
 </html>`);
   doc.close();
-
-  // 格式化时间
-  function formatHumanDate(dateStr) {
-    if (!dateStr) return "";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const h = String(d.getHours()).padStart(2, "0");
-      const min = String(d.getMinutes()).padStart(2, "0");
-      return `${y}-${m}-${day} ${h}:${min}`;
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
-  function escapeHtml(str) {
-    return (str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
 
   // 构建代码树节点
   function createXmlDomTree(node, depth = 0) {
@@ -1181,21 +1208,42 @@
     });
   }
 
-  // 明暗主题切换
+  // 明暗主题切换与持久化记忆
   const body = doc.body;
   const themeBtn = doc.getElementById("btn-theme");
-  themeBtn?.addEventListener("click", () => {
-    if (body.classList.contains("theme-dark")) {
-      body.classList.remove("theme-dark");
-      body.classList.add("theme-light");
-      iframe.style.background = "#f8fafc";
-      iframe.style.colorScheme = "light";
-    } else {
+
+  function updateThemeUI(theme) {
+    const isDark = theme === "dark";
+    if (isDark) {
       body.classList.remove("theme-light");
       body.classList.add("theme-dark");
       iframe.style.background = "#0b1120";
       iframe.style.colorScheme = "dark";
+      if (themeBtn) {
+        themeBtn.title = "当前为暗色主题，点击切换为浅色";
+        themeBtn.textContent = "🌙";
+      }
+    } else {
+      body.classList.remove("theme-dark");
+      body.classList.add("theme-light");
+      iframe.style.background = "#f8fafc";
+      iframe.style.colorScheme = "light";
+      if (themeBtn) {
+        themeBtn.title = "当前为浅色主题，点击切换为深色";
+        themeBtn.textContent = "☀️";
+      }
     }
+  }
+
+  // 初始化按钮状态
+  updateThemeUI(initialTheme);
+
+  themeBtn?.addEventListener("click", () => {
+    const isCurrentlyDark = body.classList.contains("theme-dark");
+    const nextTheme = isCurrentlyDark ? "light" : "dark";
+    updateThemeUI(nextTheme);
+    saveTheme(nextTheme);
+    showToast(`已切换并记住为${nextTheme === "dark" ? "暗色" : "浅色"}主题 ✓`);
   });
 
   // 全部折叠 / 展开
@@ -1449,11 +1497,24 @@
     } catch (_) {}
   }, 100);
 
-  return {
-    success: true,
-    isXml: true,
-    hasFeed,
-    feedTitle: feedData?.title,
-    itemCount: feedData?.items?.length,
-  };
+    return {
+      success: true,
+      isXml: true,
+      hasFeed,
+      feedTitle: feedData?.title,
+      itemCount: feedData?.items?.length,
+    };
+  } catch (err) {
+    console.error("[豆豆] XML 排版异常:", err);
+    if (iframe && iframe.parentNode) {
+      try {
+        iframe.remove();
+      } catch (_) {}
+    }
+    unlockHostScroll();
+    return {
+      success: false,
+      error: "XML 排版解析异常: " + (err.message || String(err)),
+    };
+  }
 })();

@@ -1,4 +1,16 @@
 (function () {
+  // XML / 非 HTML 页面不初始化浮动按钮，避免 XMLDocument 模式下 style undefined 报错
+  if (
+    document instanceof XMLDocument ||
+    (document.contentType &&
+      (document.contentType.includes("xml") ||
+        document.contentType.includes("+xml"))) ||
+    (document.documentElement &&
+      document.documentElement.nodeName.toLowerCase() !== "html")
+  ) {
+    return;
+  }
+
   if (document.getElementById("doudou-floating-btn")) return;
 
   const ICON_URL = chrome.runtime.getURL("icons/doudou_128.png");
