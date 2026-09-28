@@ -374,13 +374,26 @@
         return;
       }
 
-      // 构造文件名：[页面标题]_[标签名]_[时间戳].md
+      // 在导出内容开头添加页面链接
+      const pageUrl = window.location.href;
+      if (pageUrl) {
+        markdown = `[${pageUrl}](${pageUrl})\n\n${markdown}`;
+      }
+
+      // 构造文件名：[页面标题]_[时间戳].md
       const rawTitle = (document.title || "element").trim();
-      const sanitizedTitle = rawTitle.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50) || "element";
-      const tag = targetElement.tagName.toLowerCase();
+      let sanitizedTitle = rawTitle
+        .replace(/[\\/:*?"<>|\r\n\t]/g, "_")
+        .replace(/\s+/g, " ")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 100)
+        .trim();
+      if (!sanitizedTitle) sanitizedTitle = "element";
+
       const now = new Date();
       const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
-      const filename = `${sanitizedTitle}_${tag}_${dateStr}.md`;
+      const filename = `${sanitizedTitle}_${dateStr}.md`;
 
       // 触发下载
       const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
